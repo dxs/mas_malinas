@@ -42,7 +42,7 @@ int main(void)
     //inits the motors
     motors_init();
 
-
+    //test
 
     /* Infinite loop. */
     while (1) {
