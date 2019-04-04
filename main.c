@@ -15,6 +15,7 @@
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
+#include <arena.h>
 
 static void serial_start(void)
 {
@@ -42,7 +43,9 @@ int main(void)
     //inits the motors
     motors_init();
 
-    //test
+    gotoarenacenter();
+    searchwaste();
+
 
     /* Infinite loop. */
     while (1) {
@@ -57,3 +60,5 @@ void __stack_chk_fail(void)
 {
     chSysHalt("Stack smashing detected");
 }
+
+
