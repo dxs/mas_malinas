@@ -11,12 +11,17 @@
 void gotoarenacenter(void);
 void searchwaste(void);
 void gotowall(void);
-int16_t aligntothewall(int16_t angle_min);
-void goforward(bool pid_or_not, uint16_t distance);
+void aligntothewall(int16_t angle_min);
+void goforward(bool pid_or_not, float distance);
 void gotoedge(void);
 void walltoright(void);
 void turnleft(int16_t angle);
-void findwall(void);
-
+int16_t  findwall(void);
+bool wasteinsight(int16_t angle);
+void pickupwaste(void);
+void goback(float distance);
+void shoveldown(void);
+void shovelup(void);
+void throwwaste(void);
 
 #endif /* ARENA_H_ */

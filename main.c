@@ -42,6 +42,7 @@ int main(void)
     usb_start();
     //inits the motors
     motors_init();
+    init_arena();
 
     gotoarenacenter();
     searchwaste();
