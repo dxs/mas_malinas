@@ -29,7 +29,7 @@
 #define WHEEL_DISTANCE      5.35f    //cm TO ADJUST IF NECESSARY. NOT ALL THE E-PUCK2 HAVE EXACTLY THE SAME WHEEL DISTANCE
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
 
-#define TOO_CLOSE_OF_THE_WALL 2
+#define TOO_CLOSE_OF_THE_WALL 50
 
 BUFFER_NAME_t name = 0;
 
@@ -115,19 +115,13 @@ void goforward(uint8_t pid_or_not, float distance){
 
 		if(distance == 0)
 		{
-			// VL53L0X_startMeasure(device, VL53L0X_DEVICEMODE_SINGLE_RANGING);
-			// while(device->Data.LastRangeMeasure.RangeMilliMeter > TOO_CLOSE_OF_THE_WALL)
-			// {
-			// 	VL53L0X_getLastMeasure(device);
-			// 	motors_advanced_set_speed(5, 5);
-			// }
-
+			while(VL53L0X_get_dist_mm() > TOO_CLOSE_OF_THE_WALL)
+			{
+				motors_advanced_set_speed(5, 5);
+			}
+			motors_advanced_stop();
 		}
-		//else motors_advanced_set_position(distance,distance,5,5);
-
-
-
-
+		else motors_advanced_set_position(distance,distance,5,5);
 	}
 
 }
