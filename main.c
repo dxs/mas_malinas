@@ -39,10 +39,6 @@ int main(void)
     serial_start();
     //starts the USB communication
     usb_start();
-    clear_leds();
-	set_body_led(0);
-	set_front_led(0);
-    set_rgb_led(0, 10, 0, 0);
     //inits the arena
     init_arena();
 

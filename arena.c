@@ -92,8 +92,9 @@ int16_t findwall(void){
 			max_norm_index = i;
 		}
 		turnleft(ANGLE_RESOLUTION);
+		chThdSleepMilliseconds(150);
 	}
-	return max_norm_index;
+	return max_norm_index*ANGLE_RESOLUTION + ANGLE_RESOLUTION;
 }
 
 
@@ -101,6 +102,7 @@ void gotowall(void){
 	int16_t angle_min = 0;
 	angle_min = findwall();
 	aligntothewall(angle_min);
+	chThdSleepMilliseconds(150);
 	goforward(false,0);
 
 }
@@ -141,7 +143,7 @@ void walltoright(void){
 }
 void turnleft(int16_t angle){
 	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
-	motors_advanced_set_position(corrected_angle, corrected_angle, -5, 5);
+	motors_advanced_set_position(corrected_angle, corrected_angle, 5, -5);
 }
 
 void pickupwaste(void){
