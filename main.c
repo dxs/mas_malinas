@@ -16,6 +16,10 @@
 #include <communications.h>
 #include <arm_math.h>
 
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
+
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -41,6 +45,8 @@ int main(void)
     usb_start();
     //inits the arena
     init_arena();
+
+    messagebus_init(&bus,&bus_lock,&bus_condvar);
 
     gotoarenacenter();
     //searchwaste();

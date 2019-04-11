@@ -13,6 +13,7 @@
 #include "memory_protection.h"
 #include <usbcfg.h>
 #include <arena.h>
+#include <pid.h>
 #include <chprintf.h>
 #include "motors_advanced.h"
 #include <audio/microphone.h>
@@ -22,6 +23,8 @@
 #include <communications.h>
 #include <arm_math.h>
 #include "sensors/VL53L0X/VL53L0X.h"
+#include "sensors/proximity.h"
+
 #define ANGLE_MAX 360
 #define NUMBER_OF_MEASURE 20
 #define ANGLE_RESOLUTION ANGLE_MAX / NUMBER_OF_MEASURE
@@ -43,7 +46,7 @@ void init_arena(void){
 }
 
 void gotoarenacenter(void){
-	gotoedge();
+	 gotoedge();
 	//turnleft(135);
 	//goforward(false, 250);
 
@@ -123,17 +126,21 @@ void goforward(uint8_t pid_or_not, float distance){
 		}
 		else motors_advanced_set_position(distance,distance,5,5);
 	}
-
+	else {
+		proximity_start();
+		pid_regulator_start();
+	}
 }
 void gotoedge(void){
 	gotowall();
 	walltoright();
-	//goforward(true, 0);
+	goforward(true, 0);
 
 }
 
 void walltoright(void){
 
+	turnleft(90);
 
 }
 void turnleft(int16_t angle){
