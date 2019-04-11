@@ -89,7 +89,7 @@ int16_t findwall(void){
 	//measure all the distances from 0° to 360°
 	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
-		chThdSleepMilliseconds(150);
+		//chThdSleepMilliseconds(150);
 		tmp = VL53L0X_get_dist_mm();
 		if(tmp < max_norm){
 			max_norm = tmp;
@@ -145,7 +145,7 @@ void walltoright(void){
 }
 void turnleft(int16_t angle){
 	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
-	motors_advanced_set_position(corrected_angle, corrected_angle, 5, -5);
+	motors_advanced_set_position(corrected_angle, corrected_angle, 4, -4);
 }
 
 void pickupwaste(void){
