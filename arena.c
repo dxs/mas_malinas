@@ -82,19 +82,20 @@ void searchwaste(void){
 int16_t findwall(void){
 	uint8_t max_norm_index = -1;
 	uint16_t max_norm = 200;
-	uint16_t tmp = 0;
+	uint16_t tmp = VL53L0X_get_dist_mm();
 	//measure all the distances from 0° to 360°
 	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
+		chThdSleepMilliseconds(150);
 		tmp = VL53L0X_get_dist_mm();
 		if(tmp < max_norm){
 			max_norm = tmp;
 			max_norm_index = i;
 		}
 		turnleft(ANGLE_RESOLUTION);
-		chThdSleepMilliseconds(150);
 	}
 	return max_norm_index*ANGLE_RESOLUTION + ANGLE_RESOLUTION;
+
 }
 
 
