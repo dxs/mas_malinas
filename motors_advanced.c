@@ -44,7 +44,7 @@ void motors_advanced_stop(void){
 	right_motor_set_speed(0);
 }
 uint8_t motors_advanced_position_reached(void){
-	if(left_motor_get_pos() == target_position_left && right_motor_get_pos() == target_position_right)
+	if(abs(left_motor_get_pos()) == abs(target_position_left) && abs(right_motor_get_pos()) == abs(target_position_right))
 		return 1;
 	else
 		return POSITION_NOT_REACHED;

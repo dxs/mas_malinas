@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <arena.h>
 #include "ch.h"
 #include "hal.h"
+#include "leds.h"
 #include "memory_protection.h"
 #include <usbcfg.h>
 #include <main.h>
@@ -37,11 +39,14 @@ int main(void)
     serial_start();
     //starts the USB communication
     usb_start();
-    //inits the motors
-    motors_advanced_init();
-    motors_advanced_set_position(5,5,5,5);
+    clear_leds();
+	set_body_led(0);
+	set_front_led(0);
+    set_rgb_led(0, 10, 0, 0);
+    //inits the arena
+    init_arena();
 
-    //gotoarenacenter();
+    gotoarenacenter();
     //searchwaste();
 
 

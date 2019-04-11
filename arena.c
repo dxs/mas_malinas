@@ -14,7 +14,7 @@
 #include <usbcfg.h>
 #include <arena.h>
 #include <chprintf.h>
-#include "motors.h"
+#include "motors_advanced.h"
 #include <audio/microphone.h>
 
 #include <audio_processing.h>
@@ -33,9 +33,13 @@
 
 BUFFER_NAME_t name = 0;
 
+void gohome(void);
+
 void init_arena(void){
 	//inits the sensor
 	VL53L0X_start();
+	motors_advanced_init();
+	chThdSleepMilliseconds(200);
 }
 
 void gotoarenacenter(void){
@@ -44,8 +48,8 @@ void gotoarenacenter(void){
 	//goforward(false, 250);
 
 }
-bool wasteinsight(int16_t angle){
-
+uint8_t wasteinsight(int16_t angle){
+	return 0;
 }
 void searchwaste(void){
 
@@ -64,7 +68,7 @@ void searchwaste(void){
 
 	        	case 2: gohome();
 
-	        	case 3: //selon la fréquence écoutée, goback(dist1,dist2 ou dist3)
+	        	case 3: //goback(dist1,dist2 ou dist3)
 	        			turnleft(90);
 	        			throwwaste();
 	        			state = 4;
@@ -77,13 +81,13 @@ void searchwaste(void){
 
 int16_t findwall(void){
 	uint8_t max_norm_index = -1;
-	uint16_t max_norm = 0;
+	uint16_t max_norm = 200;
 	uint16_t tmp = 0;
 	//measure all the distances from 0° to 360°
 	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
 		tmp = VL53L0X_get_dist_mm();
-		if(tmp > max_norm){
+		if(tmp < max_norm){
 			max_norm = tmp;
 			max_norm_index = i;
 		}
@@ -103,7 +107,7 @@ void gotowall(void){
 void aligntothewall(int16_t angle_min){
 	turnleft(angle_min);
 }
-void goforward(bool pid_or_not, float distance){
+void goforward(uint8_t pid_or_not, float distance){
 	if(pid_or_not == false){
 
 		if(distance == 0)
@@ -112,11 +116,11 @@ void goforward(bool pid_or_not, float distance){
 			// while(device->Data.LastRangeMeasure.RangeMilliMeter > TOO_CLOSE_OF_THE_WALL)
 			// {
 			// 	VL53L0X_getLastMeasure(device);
-			// 	motor_set_speed(5, 5);
+			// 	motors_advanced_set_speed(5, 5);
 			// }
 
 		}
-		//else motor_set_position(distance,distance,5,5);
+		//else motors_advanced_set_position(distance,distance,5,5);
 
 
 
@@ -137,7 +141,7 @@ void walltoright(void){
 }
 void turnleft(int16_t angle){
 	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
-	motor_set_position(corrected_angle, corrected_angle, -5, 5);
+	motors_advanced_set_position(corrected_angle, corrected_angle, -5, 5);
 }
 
 void pickupwaste(void){
@@ -149,7 +153,7 @@ void pickupwaste(void){
 }
 void goback(float distance){
 
-	//motor_set_position(distance,distance,5,5);
+	//motors_advanced_set_position(distance,distance,5,5);
 
 }
 void shoveldown(void){
@@ -164,11 +168,11 @@ void gohome(void){
 	int16_t *data;
 	gotoedge();
 	while(1){
-		data = get_audio_buffer_ptr(name);
-		processAudioData(data, 1024); //numsample = 1024
+		//data = get_audio_buffer_ptr(name);
+		//processAudioData(data, 1024); //numsample = 1024
 			//if freq = 1,2 ou 3 -> state = 3, break;
-		goforward(true, 0);
-		turnleft(90);
+		//goforward(true, 0);
+		//turnleft(90);
 		}
 }
 void throwwaste(void){
