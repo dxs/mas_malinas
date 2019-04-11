@@ -12,27 +12,30 @@
 #include "hal.h"
 #include "memory_protection.h"
 #include <usbcfg.h>
-#include <main.h>
+#include <arena.h>
 #include <chprintf.h>
-#include <motors.h>
+#include "motors.h"
 #include <audio/microphone.h>
 
 #include <audio_processing.h>
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
-#include <sensors/VL53L0X/VL53L0X.h>
+#include "sensors/VL53L0X/VL53L0X.h"
 #define ANGLE_MAX 360
-#define ANGLE_resolution 18
-#define number_of_measure 20
-#define TOO_CLOSE_OF_THE_WALL 2 //il me semble que les distances sont en centimètres dans motor
+#define NUMBER_OF_MEASURE 20
+#define ANGLE_RESOLUTION ANGLE_MAX / NUMBER_OF_MEASURE
+#define PI                  3.1415926536f
+#define WHEEL_DISTANCE      5.35f    //cm TO ADJUST IF NECESSARY. NOT ALL THE E-PUCK2 HAVE EXACTLY THE SAME WHEEL DISTANCE
+#define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
 
-static VL53L0X_Dev_t* device;
+#define TOO_CLOSE_OF_THE_WALL 2
+
 BUFFER_NAME_t name = 0;
 
 void init_arena(void){
 	//inits the sensor
-	VL53L0X_init(device);
+	VL53L0X_start();
 }
 
 void gotoarenacenter(void){
@@ -50,7 +53,7 @@ void searchwaste(void){
 	int16_t angle = 0;
 	switch(state){
 	        	case 0:
-	        	for(angle = 0; angle < number_of_measure; angle++){
+	        	for(angle = 0; angle < NUMBER_OF_MEASURE; angle++){
 	        		if (wasteinsight(angle) == 1){
 	        			state = 1;
 	        			break;
@@ -73,26 +76,18 @@ void searchwaste(void){
 
 
 int16_t findwall(void){
-
-	uint16_t distance[number_of_measure];
-	int16_t max_norm_index = -1;
-	int16_t max_norm = 0;
-	int16_t i = 0;
+	uint8_t max_norm_index = -1;
+	uint16_t max_norm = 0;
+	uint16_t tmp = 0;
 	//measure all the distances from 0° to 360°
-	for(i = 0; i < number_of_measure; i++)
+	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
-		VL53L0X_startMeasure(device, VL53L0X_DEVICEMODE_SINGLE_RANGING);
-		VL53L0X_getLastMeasure(device);
-		distance[i] = device->Data.LastRangeMeasure.RangeMilliMeter;
-		turnleft(ANGLE_resolution);
-	}
-	for(i = 0; i < number_of_measure; i++)
-	{
-			//search for the lowest distance
-				if(distance[i] < max_norm){
-					max_norm = distance[i];
-					max_norm_index = i;
-					}
+		tmp = VL53L0X_get_dist_mm();
+		if(tmp > max_norm){
+			max_norm = tmp;
+			max_norm_index = i;
+		}
+		turnleft(ANGLE_RESOLUTION);
 	}
 	return max_norm_index;
 }
@@ -113,12 +108,12 @@ void goforward(bool pid_or_not, float distance){
 
 		if(distance == 0)
 		{
-			VL53L0X_startMeasure(device, VL53L0X_DEVICEMODE_SINGLE_RANGING);
-			while(device->Data.LastRangeMeasure.RangeMilliMeter > TOO_CLOSE_OF_THE_WALL)
-				{
-				VL53L0X_getLastMeasure(device);
-				motor_set_speed(5, 5);
-				}
+			// VL53L0X_startMeasure(device, VL53L0X_DEVICEMODE_SINGLE_RANGING);
+			// while(device->Data.LastRangeMeasure.RangeMilliMeter > TOO_CLOSE_OF_THE_WALL)
+			// {
+			// 	VL53L0X_getLastMeasure(device);
+			// 	motor_set_speed(5, 5);
+			// }
 
 		}
 		//else motor_set_position(distance,distance,5,5);
@@ -141,8 +136,8 @@ void walltoright(void){
 
 }
 void turnleft(int16_t angle){
-
-
+	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
+	motor_set_position(corrected_angle, corrected_angle, -5, 5);
 }
 
 void pickupwaste(void){

@@ -8,14 +8,11 @@
 #include <usbcfg.h>
 #include <main.h>
 #include <chprintf.h>
-#include <motors.h>
+#include "motors_advanced.h"
+#include <i2c_bus.h>
 #include <audio/microphone.h>
-
-#include <audio_processing.h>
-#include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
-#include <arena.h>
 
 static void serial_start(void)
 {
@@ -41,11 +38,11 @@ int main(void)
     //starts the USB communication
     usb_start();
     //inits the motors
-    motors_init();
-    init_arena();
+    motors_advanced_init();
+    motors_advanced_set_position(5,5,5,5);
 
-    gotoarenacenter();
-    searchwaste();
+    //gotoarenacenter();
+    //searchwaste();
 
 
     /* Infinite loop. */

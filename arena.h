@@ -23,5 +23,6 @@ void goback(float distance);
 void shoveldown(void);
 void shovelup(void);
 void throwwaste(void);
+void init_arena(void);
 
 #endif /* ARENA_H_ */

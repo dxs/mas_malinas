@@ -82,7 +82,7 @@ void motor_init(void)
 
     // Configure Motor right timer
     // final timer clock  = timer clock / (prescaler + 1)
-    MOTOR_RIGHT_TIMER->PSC = (TIMER_CLOCK / TIMER_FREQ) - 1;    
+    MOTOR_RIGHT_TIMER->PSC = (TIMER_CLOCK / TIMER_FREQ) - 1;
     MOTOR_RIGHT_TIMER->ARR = 0;
     MOTOR_RIGHT_TIMER->DIER = TIM_DIER_UIE;  // enable update interrupt
     MOTOR_RIGHT_TIMER->CR1 = TIM_CR1_CEN;    // enable timer
@@ -277,10 +277,4 @@ void MOTOR_LEFT_IRQHandler(void)
     MOTOR_LEFT_TIMER->SR &= ~TIM_SR_UIF;
     MOTOR_LEFT_TIMER->SR;	// Read back in order to ensure the effective IF clearing
 }
-void turnleft(int16_t angle){
-	uint16_t dividende = 180/angle ;
-	motor_set_position(PERIMETER_EPUCK/dividende, PERIMETER_EPUCK/dividende, -5, 5);
-}
-
-
 
