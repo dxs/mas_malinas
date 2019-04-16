@@ -49,3 +49,8 @@ uint8_t motors_advanced_position_reached(void){
 	else
 		return POSITION_NOT_REACHED;
 }
+
+void motors_advanced_turnleft(int16_t angle){
+	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
+	motors_advanced_set_position(corrected_angle, corrected_angle, 4, -4);
+}

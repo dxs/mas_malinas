@@ -39,7 +39,7 @@ int16_t pid_regulator(float distance, float goal){
 		sum_error = -MAX_SUM_ERROR;
 	}
 
-	speed = KP * error;// KI * sum_error;
+	speed = KP * error + KI * sum_error;
 
     return (int16_t)speed;
 }
@@ -73,6 +73,8 @@ static THD_FUNCTION(Pid, arg) {
 
         if(VL53L0X_get_dist_mm() < TOO_CLOSE_OF_THE_WALL)
         			motors_advanced_stop();
+        if(get_distance_cm_sensor(1) < 1.3)
+        	motors_advanced_turnleft(25);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));

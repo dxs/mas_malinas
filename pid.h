@@ -8,9 +8,9 @@
 #define GOAL_DISTANCE 			0.8f
 #define MAX_DISTANCE 			25.0f
 #define ERROR_THRESHOLD			0.0001f	//[cm] because of the noise of the camera
-#define KP						1.5f
-#define KI 						3.5f	//must not be zero
-#define MAX_SUM_ERROR 			(MOTOR_SPEED_LIMIT/KI)
+#define KP						1.01f
+#define KI 						1.01f	//must not be zero
+#define MAX_SUM_ERROR 			0.3
 #define TOO_CLOSE_OF_THE_WALL 50
 
 

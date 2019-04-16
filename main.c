@@ -45,6 +45,10 @@ int main(void)
     usb_start();
     //inits the arena
     init_arena();
+    set_rgb_led(0, 255, 0, 0);
+	set_rgb_led(1, 255, 0, 0);
+	set_rgb_led(2, 255, 0, 0);
+	set_rgb_led(3, 255, 0, 0);
 
     messagebus_init(&bus,&bus_lock,&bus_condvar);
     goforward(true, 0);
