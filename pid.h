@@ -16,5 +16,6 @@
 
 //start the PI regulator thread
 void pid_regulator_start(void);
+void pid_pause(uint8_t _sleep);
 
 #endif /* PI_REGULATOR_H */

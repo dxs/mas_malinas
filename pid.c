@@ -11,6 +11,7 @@
 #include "sensors/VL53L0X/VL53L0X.h"
 #include <pid.h>
 
+static uint8_t pid_sleep = 0;
 
 
 //simple PI regulator implementation
@@ -62,26 +63,31 @@ static THD_FUNCTION(Pid, arg) {
     int16_t speed_correction = 0;
 
     while(1){
-        time = chVTGetSystemTime();
+    		if(pid_sleep == 1)
+    	        	chThdSleepUntilWindowed(time, time + MS2ST(1000));
+    		else {
+			time = chVTGetSystemTime();
 
-        //computes the speed to give to the motors
-        //distance_cm is modified by the image processing thread
-        speed = pid_regulator(get_distance_cm_sensor(2), GOAL_DISTANCE);
+			//computes the speed to give to the motors
+			//distance_cm is modified by the image processing thread
+			speed = pid_regulator(get_distance_cm_sensor(2), GOAL_DISTANCE);
 
-        //applies the speed from the PI regulator and the correction for the rotation
-        motors_advanced_set_speed(5 - ROTATION_COEFF*speed, 5 + ROTATION_COEFF *speed);
+			//applies the speed from the PI regulator and the correction for the rotation
+			motors_advanced_set_speed(5 - ROTATION_COEFF*speed, 5 + ROTATION_COEFF *speed);
 
-        if(VL53L0X_get_dist_mm() < TOO_CLOSE_OF_THE_WALL)
-        			motors_advanced_stop();
-        if(get_distance_cm_sensor(1) < 1.3)
-        	motors_advanced_turnleft(25);
+			if(get_distance_cm_sensor(1) < 1.3)
+				motors_advanced_turnleft(25);
 
-        //100Hz
-        chThdSleepUntilWindowed(time, time + MS2ST(10));
+			//100Hz
+			chThdSleepUntilWindowed(time, time + MS2ST(10));
+    		}
+
     }
 }
 
 void pid_regulator_start(void){
 	chThdCreateStatic(waPid, sizeof(waPid), NORMALPRIO, Pid, NULL);
 }
-
+void pid_pause(uint8_t _sleep){
+	pid_sleep = _sleep;
+}

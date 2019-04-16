@@ -43,12 +43,17 @@ void init_arena(void){
 	VL53L0X_start();
 	motors_advanced_init();
 	chThdSleepMilliseconds(200);
+	proximity_start();
+	pid_pause(1);
+	pid_regulator_start();
+
+
 }
 
 void gotoarenacenter(void){
 	 gotoedge();
-	//turnleft(135);
-	//goforward(false, 250);
+	 turnleft(135);
+	 goforward(false, 250);
 
 }
 uint8_t wasteinsight(int16_t angle){
@@ -89,7 +94,7 @@ int16_t findwall(void){
 	//measure all the distances from 0° to 360°
 	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
-		//chThdSleepMilliseconds(150);
+		chThdSleepMilliseconds(150);
 		tmp = VL53L0X_get_dist_mm();
 		if(tmp < max_norm){
 			max_norm = tmp;
@@ -115,7 +120,7 @@ void aligntothewall(int16_t angle_min){
 }
 void goforward(uint8_t pid_or_not, float distance){
 	if(pid_or_not == false){
-
+		pid_pause(1);
 		if(distance == 0)
 		{
 			while(VL53L0X_get_dist_mm() > TOO_CLOSE_OF_THE_WALL)
@@ -126,15 +131,21 @@ void goforward(uint8_t pid_or_not, float distance){
 		}
 		else motors_advanced_set_position(distance,distance,5,5);
 	}
-	else {
-		proximity_start();
-		pid_regulator_start();
+	else
+	{
+		pid_pause(0);
 	}
 }
 void gotoedge(void){
 	gotowall();
 	walltoright();
 	goforward(true, 0);
+	if(VL53L0X_get_dist_mm() < TOO_CLOSE_OF_THE_WALL)
+	{
+		motors_advanced_stop();
+		pid_pause(1);
+	}
+
 
 }
 
