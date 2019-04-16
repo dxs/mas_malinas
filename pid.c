@@ -39,7 +39,7 @@ int16_t pid_regulator(float distance, float goal){
 		sum_error = -MAX_SUM_ERROR;
 	}
 
-	speed = KP * error + KI * sum_error;
+	speed = KP * error;// KI * sum_error;
 
     return (int16_t)speed;
 }
@@ -66,12 +66,7 @@ static THD_FUNCTION(Pid, arg) {
 
         //computes the speed to give to the motors
         //distance_cm is modified by the image processing thread
-        speed = pid_regulator(get_distance_cm_sensor(3), GOAL_DISTANCE);
-
-        //if the line is nearly in front of the camera, don't rotate
-        if(abs(speed) < ROTATION_THRESHOLD){
-        	speed_correction = 0;
-        }
+        speed = pid_regulator(get_distance_cm_sensor(2), GOAL_DISTANCE);
 
         //applies the speed from the PI regulator and the correction for the rotation
         motors_advanced_set_speed(5 - ROTATION_COEFF*speed, 5 + ROTATION_COEFF *speed);

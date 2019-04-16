@@ -47,6 +47,7 @@ int main(void)
     init_arena();
 
     messagebus_init(&bus,&bus_lock,&bus_condvar);
+    goforward(true, 0);
 
     gotoarenacenter();
     //searchwaste();
