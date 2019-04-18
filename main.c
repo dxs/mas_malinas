@@ -53,6 +53,8 @@ int main(void)
 	gotoarenacenter();
 	set_body_led(0);
 	set_front_led(1);
+    chThdSleepMilliseconds(5000);
+	set_front_led(0);
     searchwaste();
 
 

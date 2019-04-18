@@ -30,7 +30,7 @@
 #define NUMBER_OF_MEASURE 20
 #define ANGLE_RESOLUTION ANGLE_MAX / NUMBER_OF_MEASURE
 #define PI                  3.1415926536f
-#define ANGLE_RESOLUTION_RAD 2*PI/ NUMBER_OF_MEASURE
+#define RAD PI/180
 #define WHEEL_DISTANCE      5.35f    //cm TO ADJUST IF NECESSARY. NOT ALL THE E-PUCK2 HAVE EXACTLY THE SAME WHEEL DISTANCE
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
 
@@ -38,9 +38,9 @@
 #define STD_SPEED	8
 #define LOW_SPEED	5
 #define VERY_LOW_SPEED	3
-#define RAYON_EPUCK 3.65f //MM
-#define RAYON_ARENA 257 //MM
-#define ERROR_RESOLUTION 5 //MM
+#define RAYON_EPUCK 365 //MM
+#define RAYON_ARENA 2570 //MM
+#define ERROR_RESOLUTION 50 //MM
 
 #define FREQUENCE1 10000 //Hz
 #define FREQUENCE2 10200 //Hz
@@ -76,14 +76,13 @@ void gotoarenacenter(void)
 
 }
 uint8_t wasteinsight(int16_t angle){
-	int dist = VL53L0X_get_dist_mm();
-	if ( abs(dist - function_distance_arena(angle*ANGLE_RESOLUTION_RAD)) < ERROR_RESOLUTION)
+	uint16_t dist = VL53L0X_get_dist_mm(); //première mesure = 0 ?
+	chThdSleepMilliseconds(110);
+	if ( abs(dist - function_distance_arena(angle*ANGLE_RESOLUTION*RAD)) < ERROR_RESOLUTION)
 	{
-		chThdSleepMilliseconds(110);
-		dist = VL53L0X_get_dist_mm();
-		if ( dist > function_distance_arena(angle*ANGLE_RESOLUTION_RAD) - ERROR_RESOLUTION && dist < function_distance_arena(angle*ANGLE_RESOLUTION_RAD) + ERROR_RESOLUTION)
 			return 1;
 	}
+
 	return 0;
 }
 void searchwaste(void){
@@ -94,11 +93,15 @@ void searchwaste(void){
 	{
 	switch(state){
 	        	case 0:
-						for(angle = 0; angle < NUMBER_OF_MEASURE; angle++)
+	        				while(angle < NUMBER_OF_MEASURE)
 						{
+							uint16_t test = VL53L0X_get_dist_mm();
+							chThdSleepMilliseconds(110);
 							if (wasteinsight(angle) == 1)
 							{
+								set_body_led(1);
 								pos_waste = angle;
+								chThdSleepMilliseconds(110);
 								state = 1;
 								break;
 							}
@@ -106,17 +109,24 @@ void searchwaste(void){
 							{
 								motors_advanced_turnright(ANGLE_RESOLUTION, STD_SPEED);
 								chThdSleepMilliseconds(110);
+								angle += 1;
+								if(angle ==  NUMBER_OF_MEASURE - 1)
+									angle = 0;
 							}
 						}
-	        	case 1: pickupwaste();
+	        				break; // c'est possible qu'il reste coincé dans cette boucle
+	        	case 1: set_body_led(0);
+	        			pickupwaste();
 	        			state = 2;
 	        			break;
 
-	        	case 2: gohome();
+	        	case 2:
+	        			gohome();
 	        			state = 3;
 	        			break;
 
-	        	case 3: goback(frequence);
+	        	case 3:
+	        			goback(frequence);
 	        			motors_advanced_turnleft(90, STD_SPEED);
 	        			throwwaste();
 	        			state = 4;
@@ -321,7 +331,7 @@ void throwwaste(void){
 }
 uint16_t function_distance_arena(uint16_t angle_robot){
 	uint16_t dist_robot = 0;
-	dist_robot = RAYON_ARENA/cos(angle_robot) -RAYON_EPUCK ;
+	dist_robot = RAYON_ARENA/cos(angle_robot) - RAYON_EPUCK ;
 	return dist_robot;
 
 }
