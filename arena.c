@@ -76,13 +76,15 @@ void gotoarenacenter(void)
 
 }
 uint8_t wasteinsight(int16_t angle){
-
-	if ( VL53L0X_get_dist_mm() > function_distance_arena(angle*ANGLE_RESOLUTION_RAD) -
-	ERROR_RESOLUTION && VL53L0X_get_dist_mm() < function_distance_arena(angle*ANGLE_RESOLUTION_RAD) + ERROR_RESOLUTION)
+	int dist = VL53L0X_get_dist_mm();
+	if ( abs(dist - function_distance_arena(angle*ANGLE_RESOLUTION_RAD)) < ERROR_RESOLUTION)
 	{
-		return 1;
+		chThdSleepMilliseconds(110);
+		dist = VL53L0X_get_dist_mm();
+		if ( dist > function_distance_arena(angle*ANGLE_RESOLUTION_RAD) - ERROR_RESOLUTION && dist < function_distance_arena(angle*ANGLE_RESOLUTION_RAD) + ERROR_RESOLUTION)
+			return 1;
 	}
-	else return 0;
+	return 0;
 }
 void searchwaste(void){
 
@@ -92,14 +94,20 @@ void searchwaste(void){
 	{
 	switch(state){
 	        	case 0:
-	        	for(angle = 0; angle < NUMBER_OF_MEASURE; angle++){
-	        		if (wasteinsight(angle) == 1){
-	        			pos_waste = angle;
-	        			state = 1;
-	        			break;
-	        		}
-	        		else motors_advanced_turnright(ANGLE_RESOLUTION, STD_SPEED);
-	        	}
+						for(angle = 0; angle < NUMBER_OF_MEASURE; angle++)
+						{
+							if (wasteinsight(angle) == 1)
+							{
+								pos_waste = angle;
+								state = 1;
+								break;
+							}
+							else
+							{
+								motors_advanced_turnright(ANGLE_RESOLUTION, STD_SPEED);
+								chThdSleepMilliseconds(110);
+							}
+						}
 	        	case 1: pickupwaste();
 	        			state = 2;
 	        			break;
@@ -313,7 +321,7 @@ void throwwaste(void){
 }
 uint16_t function_distance_arena(uint16_t angle_robot){
 	uint16_t dist_robot = 0;
-	dist_robot = RAYON_EPUCK - RAYON_ARENA/cos(angle_robot) ;
+	dist_robot = RAYON_ARENA/cos(angle_robot) -RAYON_EPUCK ;
 	return dist_robot;
 
 }
