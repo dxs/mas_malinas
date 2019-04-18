@@ -2,19 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <arena.h>
+#include "arena.h"
 #include "ch.h"
 #include "hal.h"
 #include "leds.h"
 #include "memory_protection.h"
 #include <usbcfg.h>
 #include <main.h>
-#include <chprintf.h>
+#include "chprintf.h"
 #include "motors_advanced.h"
-#include <i2c_bus.h>
-#include <audio/microphone.h>
-#include <communications.h>
-#include <arm_math.h>
+#include "i2c_bus.h"
+#include "audio/microphone.h"
+#include "communications.h"
+#include "arm_math.h"
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -45,10 +45,16 @@ int main(void)
     usb_start();
     //inits the arena
     init_arena();
-
+    clear_leds();
+	set_body_led(0);
+	set_front_led(0);
     messagebus_init(&bus,&bus_lock,&bus_condvar);
-
-    gotoarenacenter();
+    chThdSleepMilliseconds(5000);
+    while(1)
+    {
+    	gotoarenacenter();
+        chThdSleepMilliseconds(5000);
+    }
     //searchwaste();
 
 

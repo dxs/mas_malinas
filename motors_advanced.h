@@ -15,6 +15,7 @@ void motors_advanced_set_speed(float speed_r, float speed_l);
 void motors_advanced_set_position(float position_r, float position_l, float speed_r, float speed_l);
 void motors_advanced_stop(void);
 uint8_t motors_advanced_position_reached(void);
-void motors_advanced_turnleft(int16_t angle);
+void motors_advanced_turnleft(int16_t angle, uint16_t speed);
+void motors_advanced_turnright(int16_t angle, uint16_t speed);
 
 #endif /* MOTOR_ADVANCED_H */

@@ -44,13 +44,19 @@ void motors_advanced_stop(void){
 	right_motor_set_speed(0);
 }
 uint8_t motors_advanced_position_reached(void){
-	if(abs(left_motor_get_pos()) == abs(target_position_left) && abs(right_motor_get_pos()) == abs(target_position_right))
+	if(abs(left_motor_get_pos()) >= abs(target_position_left) && abs(right_motor_get_pos()) >= abs(target_position_right))
 		return 1;
 	else
 		return POSITION_NOT_REACHED;
 }
 
-void motors_advanced_turnleft(int16_t angle){
+void motors_advanced_turnleft(int16_t angle, uint16_t speed){
 	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
-	motors_advanced_set_position(corrected_angle, corrected_angle, 4, -4);
+	motors_advanced_set_position(corrected_angle, corrected_angle, speed, -speed);
+}
+
+void motors_advanced_turnright(int16_t angle, uint16_t speed)
+{
+	float corrected_angle = (float)angle/ANGLE_MAX*PERIMETER_EPUCK;
+	motors_advanced_set_position(corrected_angle, corrected_angle, -speed, speed);
 }
