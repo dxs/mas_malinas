@@ -19,10 +19,12 @@ void turnleft(int16_t angle);
 int16_t  findwall(void);
 uint8_t wasteinsight(int16_t angle);
 void pickupwaste(void);
-void goback(float distance);
+void goback(uint16_t frequence);
 void shoveldown(void);
 void shovelup(void);
 void throwwaste(void);
 void init_arena(void);
+uint16_t function_distance_arena(uint16_t angle_robot);
+void go_to_another_edge(void);
 
 #endif /* ARENA_H_ */

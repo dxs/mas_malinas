@@ -30,6 +30,7 @@
 #define NUMBER_OF_MEASURE 20
 #define ANGLE_RESOLUTION ANGLE_MAX / NUMBER_OF_MEASURE
 #define PI                  3.1415926536f
+#define ANGLE_RESOLUTION_RAD 2*PI/ NUMBER_OF_MEASURE
 #define WHEEL_DISTANCE      5.35f    //cm TO ADJUST IF NECESSARY. NOT ALL THE E-PUCK2 HAVE EXACTLY THE SAME WHEEL DISTANCE
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
 
@@ -37,8 +38,21 @@
 #define STD_SPEED	8
 #define LOW_SPEED	5
 #define VERY_LOW_SPEED	3
+#define RAYON_EPUCK 3.65f //MM
+#define RAYON_ARENA 257 //MM
+#define ERROR_RESOLUTION 5 //MM
+
+#define FREQUENCE1 10000 //Hz
+#define FREQUENCE2 10200 //Hz
+#define FREQUENCE3 10400 //Hz
+
+#define DIST1 10
+#define DIST2 20
+#define DIST3 30
 
 BUFFER_NAME_t name = 0;
+static  uint16_t pos_waste; //on peut peut être enlever
+static  uint16_t frequence;
 
 void gohome(void);
 void precise_alignment_wall(void);
@@ -62,33 +76,49 @@ void gotoarenacenter(void)
 
 }
 uint8_t wasteinsight(int16_t angle){
-	return 0;
+
+	if ( VL53L0X_get_dist_mm() > function_distance_arena(angle*ANGLE_RESOLUTION_RAD) -
+	ERROR_RESOLUTION && VL53L0X_get_dist_mm() < function_distance_arena(angle*ANGLE_RESOLUTION_RAD) + ERROR_RESOLUTION)
+	{
+		return 1;
+	}
+	else return 0;
 }
 void searchwaste(void){
 
 	static uint8_t state = 0;
 	int16_t angle = 0;
+	while(1)
+	{
 	switch(state){
 	        	case 0:
 	        	for(angle = 0; angle < NUMBER_OF_MEASURE; angle++){
 	        		if (wasteinsight(angle) == 1){
+	        			pos_waste = angle;
 	        			state = 1;
 	        			break;
 	        		}
+	        		else motors_advanced_turnright(ANGLE_RESOLUTION, STD_SPEED);
 	        	}
 	        	case 1: pickupwaste();
 	        			state = 2;
+	        			break;
 
 	        	case 2: gohome();
+	        			state = 3;
+	        			break;
 
-	        	case 3: //goback(dist1,dist2 ou dist3)
+	        	case 3: goback(frequence);
 	        			motors_advanced_turnleft(90, STD_SPEED);
 	        			throwwaste();
 	        			state = 4;
+	        			break;
 
 	        	case 4: gotoarenacenter();
 	        			state = 0;
+	        			break;
 	        }
+	}
 }
 
 
@@ -237,9 +267,20 @@ void pickupwaste(void){
 	goforward(PID_PAUSE, 1, LOW_SPEED);
 	shovelup();
 }
-void goback(float distance){
+void goback(uint16_t frequence){
 
-	//motors_advanced_set_position(distance,distance,5,5);
+	if(frequence == FREQUENCE1)
+	{
+		goforward(PID_PAUSE, DIST1, -LOW_SPEED);
+	}
+	if(frequence == FREQUENCE2)
+	{
+		goforward(PID_PAUSE, DIST2, -LOW_SPEED);
+	}
+	if(frequence == FREQUENCE3)
+	{
+		goforward(PID_PAUSE, DIST3, -LOW_SPEED);
+	}
 
 }
 void shoveldown(void){
@@ -251,17 +292,44 @@ void shovelup(void){
 
 }
 void gohome(void){
-	int16_t *data;
 	gotoedge();
-	while(1){
-		//data = get_audio_buffer_ptr(name);
-		//processAudioData(data, 1024); //numsample = 1024
-			//if freq = 1,2 ou 3 -> state = 3, break;
-		//goforward(true, 0);
-		//turnleft(90);
-		}
+	while(1)
+	{
+	if(get_frequence() == FREQUENCE1 || FREQUENCE2 || FREQUENCE3)
+	{
+		if(get_frequence() == FREQUENCE1)
+			frequence = FREQUENCE1;
+		if(get_frequence() == FREQUENCE2)
+			frequence = FREQUENCE2;
+		if(get_frequence() == FREQUENCE3)
+			frequence = FREQUENCE3;
+	}
+	else go_to_another_edge();
+	}
 }
 void throwwaste(void){
 
 
+}
+uint16_t function_distance_arena(uint16_t angle_robot){
+	uint16_t dist_robot = 0;
+	dist_robot = RAYON_EPUCK - RAYON_ARENA/cos(angle_robot) ;
+	return dist_robot;
+
+}
+void go_to_another_edge(void){
+	goforward(PID_PLAY, 0, STD_SPEED);
+		while(1)
+		{
+			if(get_prox(0) > 1000 || get_prox(7) > 1000)
+			{
+				motors_advanced_stop();
+				pid_pause(PID_PAUSE);
+				precise_alignment_wall();
+				motors_advanced_turnright(90, LOW_SPEED);
+				precise_alignment_wall();
+				break;
+			}
+			chThdSleepMilliseconds(10);
+		}
 }

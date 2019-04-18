@@ -24,6 +24,7 @@ static float micLeft_output[FFT_SIZE];
 static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
+static frequence = 0;
 
 #define MIN_VALUE_THRESHOLD	10000 
 
@@ -42,12 +43,13 @@ static float micBack_output[FFT_SIZE];
 #define FREQ_RIGHT_H		(FREQ_RIGHT+1)
 #define FREQ_BACKWARD_L		(FREQ_BACKWARD-1)
 #define FREQ_BACKWARD_H		(FREQ_BACKWARD+1)
+#define SEND_FROM_MIC
 
 /*
 *	Simple function used to detect the highest value in a buffer
 *	and to execute a motor command depending on it
 */
-void sound_remote(float* data){
+int16_t sound_remote(float* data){
 	float max_norm = MIN_VALUE_THRESHOLD;
 	int16_t max_norm_index = -1; 
 
@@ -58,32 +60,7 @@ void sound_remote(float* data){
 			max_norm_index = i;
 		}
 	}
-
-	//go forward
-	if(max_norm_index >= FREQ_FORWARD_L && max_norm_index <= FREQ_FORWARD_H){
-		left_motor_set_speed(600);
-		right_motor_set_speed(600);
-	}
-	//turn left
-	else if(max_norm_index >= FREQ_LEFT_L && max_norm_index <= FREQ_LEFT_H){
-		left_motor_set_speed(-600);
-		right_motor_set_speed(600);
-	}
-	//turn right
-	else if(max_norm_index >= FREQ_RIGHT_L && max_norm_index <= FREQ_RIGHT_H){
-		left_motor_set_speed(600);
-		right_motor_set_speed(-600);
-	}
-	//go backward
-	else if(max_norm_index >= FREQ_BACKWARD_L && max_norm_index <= FREQ_BACKWARD_H){
-		left_motor_set_speed(-600);
-		right_motor_set_speed(-600);
-	}
-	else{
-		left_motor_set_speed(0);
-		right_motor_set_speed(0);
-	}
-	
+	return max_norm_index;
 }
 
 /*
@@ -104,7 +81,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	*	1024 samples, then we compute the FFTs.
 	*
 	*/
-
+	int16_t frequence = 0;
 	static uint16_t nb_samples = 0;
 	static uint8_t mustSend = 0;
 
@@ -165,7 +142,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		nb_samples = 0;
 		mustSend++;
 
-		sound_remote(micLeft_output);
+		frequence = sound_remote(micLeft_output);
 	}
 }
 
@@ -202,3 +179,19 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 		return NULL;
 	}
 }
+int16_t get_frequence(void)
+{
+	 int16_t freq = 0;
+	 static complex_float temp_tab[FFT_SIZE];
+	    //send_tab is used to save the state of the buffer to send (double buffering)
+	    //to avoid modifications of the buffer while sending it
+	    static float send_tab[FFT_SIZE];
+
+	#ifdef SEND_FROM_MIC
+	    //starts the microphones processing thread.
+	    //it calls the callback given in parameter when samples are ready
+	    mic_start(&processAudioData);
+	    return frequence;
+	#endif  /* SEND_FROM_MIC */
+}
+
