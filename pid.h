@@ -11,7 +11,8 @@
 #define KP						1.01f
 #define KI 						1.01f	//must not be zero
 #define MAX_SUM_ERROR 			0.3
-#define TOO_CLOSE_OF_THE_WALL 	40
+#define TOO_CLOSE_OF_THE_WALL 	50
+#define TOO_CLOSE_OF_THE_WASTE 	70
 #define PID_PAUSE				1
 #define PID_PLAY				0
 
