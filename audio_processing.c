@@ -15,15 +15,9 @@
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
 //2 times FFT_SIZE because these arrays contain complex numbers (real + imaginary)
-static float micLeft_cmplx_input[2 * FFT_SIZE];
 static float micRight_cmplx_input[2 * FFT_SIZE];
-static float micFront_cmplx_input[2 * FFT_SIZE];
-static float micBack_cmplx_input[2 * FFT_SIZE];
 //Arrays containing the computed magnitude of the complex numbers
-static float micLeft_output[FFT_SIZE];
 static float micRight_output[FFT_SIZE];
-static float micFront_output[FFT_SIZE];
-static float micBack_output[FFT_SIZE];
 static frequence = 0;
 
 #define MIN_VALUE_THRESHOLD	10000 
@@ -43,7 +37,13 @@ static frequence = 0;
 #define FREQ_RIGHT_H		(FREQ_RIGHT+1)
 #define FREQ_BACKWARD_L		(FREQ_BACKWARD-1)
 #define FREQ_BACKWARD_H		(FREQ_BACKWARD+1)
-#define SEND_FROM_MIC
+
+uint8_t mic_playing = MIC_PAUSE;
+
+void set_mic_state(uint8_t state)
+{
+	mic_playing = state;
+}
 
 /*
 *	Simple function used to detect the highest value in a buffer
@@ -74,6 +74,9 @@ int16_t sound_remote(float* data){
 */
 void processAudioData(int16_t *data, uint16_t num_samples){
 
+	if (mic_playing == MIC_PAUSE)
+		return;
+
 	/*
 	*
 	*	We get 160 samples per mic every 10ms
@@ -88,20 +91,10 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	//loop to fill the buffers
 	for(uint16_t i = 0 ; i < num_samples ; i+=4){
 		//construct an array of complex numbers. Put 0 to the imaginary part
-		micRight_cmplx_input[nb_samples] = (float)data[i + MIC_RIGHT];
 		micLeft_cmplx_input[nb_samples] = (float)data[i + MIC_LEFT];
-		micBack_cmplx_input[nb_samples] = (float)data[i + MIC_BACK];
-		micFront_cmplx_input[nb_samples] = (float)data[i + MIC_FRONT];
-
 		nb_samples++;
-
-		micRight_cmplx_input[nb_samples] = 0;
 		micLeft_cmplx_input[nb_samples] = 0;
-		micBack_cmplx_input[nb_samples] = 0;
-		micFront_cmplx_input[nb_samples] = 0;
-
 		nb_samples++;
-
 		//stop when buffer is full
 		if(nb_samples >= (2 * FFT_SIZE)){
 			break;
@@ -114,11 +107,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		*	This FFT function stores the results in the input buffer given.
 		*	This is an "In Place" function. 
 		*/
-
-		doFFT_optimized(FFT_SIZE, micRight_cmplx_input);
 		doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
-		doFFT_optimized(FFT_SIZE, micFront_cmplx_input);
-		doFFT_optimized(FFT_SIZE, micBack_cmplx_input);
 
 		/*	Magnitude processing
 		*
@@ -127,10 +116,12 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		*	real numbers.
 		*
 		*/
-		arm_cmplx_mag_f32(micRight_cmplx_input, micRight_output, FFT_SIZE);
 		arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
-		arm_cmplx_mag_f32(micFront_cmplx_input, micFront_output, FFT_SIZE);
-		arm_cmplx_mag_f32(micBack_cmplx_input, micBack_output, FFT_SIZE);
+
+		nb_samples = 0;
+		mustSend++;
+
+		frequence = sound_remote(micLeft_output);
 
 		//sends only one FFT result over 10 for 1 mic to not flood the computer
 		//sends to UART3
@@ -139,10 +130,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			chBSemSignal(&sendToComputer_sem);
 			mustSend = 0;
 		}
-		nb_samples = 0;
-		mustSend++;
-
-		frequence = sound_remote(micLeft_output);
 	}
 }
 
@@ -154,26 +141,8 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 	if(name == LEFT_CMPLX_INPUT){
 		return micLeft_cmplx_input;
 	}
-	else if (name == RIGHT_CMPLX_INPUT){
-		return micRight_cmplx_input;
-	}
-	else if (name == FRONT_CMPLX_INPUT){
-		return micFront_cmplx_input;
-	}
-	else if (name == BACK_CMPLX_INPUT){
-		return micBack_cmplx_input;
-	}
 	else if (name == LEFT_OUTPUT){
 		return micLeft_output;
-	}
-	else if (name == RIGHT_OUTPUT){
-		return micRight_output;
-	}
-	else if (name == FRONT_OUTPUT){
-		return micFront_output;
-	}
-	else if (name == BACK_OUTPUT){
-		return micBack_output;
 	}
 	else{
 		return NULL;
@@ -181,17 +150,7 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 }
 int16_t get_frequence(void)
 {
-	 int16_t freq = 0;
-	 static complex_float temp_tab[FFT_SIZE];
-	    //send_tab is used to save the state of the buffer to send (double buffering)
-	    //to avoid modifications of the buffer while sending it
-	    static float send_tab[FFT_SIZE];
-
-	#ifdef SEND_FROM_MIC
-	    //starts the microphones processing thread.
-	    //it calls the callback given in parameter when samples are ready
-	    mic_start(&processAudioData);
-	    return frequence;
-	#endif  /* SEND_FROM_MIC */
+	wait_send_to_computer();
+	return frequence;
 }
 
