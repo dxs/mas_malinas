@@ -15,9 +15,9 @@
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
 //2 times FFT_SIZE because these arrays contain complex numbers (real + imaginary)
-static float micRight_cmplx_input[2 * FFT_SIZE];
+static float micLeft_cmplx_input[2 * FFT_SIZE];
 //Arrays containing the computed magnitude of the complex numbers
-static float micRight_output[FFT_SIZE];
+static float micLeft_output[FFT_SIZE];
 static frequence = 0;
 
 #define MIN_VALUE_THRESHOLD	10000 

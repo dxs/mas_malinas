@@ -65,7 +65,7 @@ void init_arena(void)
 	proximity_start();
 	pid_pause(1);
 	pid_regulator_start();
-	mic_playing(MIC_PAUSE)
+	set_mic_state(MIC_PAUSE);
 	mic_start(&processAudioData);
 }
 
@@ -73,7 +73,7 @@ void gotoarenacenter(void)
 {
 	 gotoedge();
 	 motors_advanced_turnright(135, HIGH_SPEED);
-	 goforward(PID_PAUSE, 30, HIGH_SPEED);
+	 goforward(PID_PAUSE, 30, HIGH_SPEED, TOO_CLOSE_OF_THE_WALL);
 
 }
 uint16_t wasteinsight(int16_t angle){
@@ -201,7 +201,7 @@ void gotowall(void){
 	aligntothewall(angle_min);
 	set_body_led(0);
 	chThdSleepMilliseconds(150);
-	goforward(PID_PAUSE, 0, HIGH_SPEED);
+	goforward(PID_PAUSE, 0, HIGH_SPEED, TOO_CLOSE_OF_THE_WALL);
 	precise_alignment_wall();
 }
 
@@ -246,7 +246,7 @@ void aligntothewall(int16_t angle_min)
 		motors_advanced_turnright(360-angle_min, STD_SPEED);
 }
 
-void goforward(uint8_t pid_or_not, float distance, uint8_t speed)
+void goforward(uint8_t pid_or_not, float distance, uint8_t speed, int16_t stop_dist)
 {
 	if(distance == 0)
 	{
@@ -273,7 +273,7 @@ void gotoedge(void)
 {
 	gotowall();
 	walltoright();
-	goforward(PID_PLAY, 0, LOW_SPEED);
+	goforward(PID_PLAY, 0, LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
 	while(1)
 	{
 		if(get_prox(0) > 1000 || get_prox(7) > 1000)
@@ -296,25 +296,25 @@ void walltoright(void){
 }
 
 void pickupwaste(void){
-	goforward(PID_PAUSE, 0, LOW_SPEED);
+	goforward(PID_PAUSE, 0, LOW_SPEED, 100);
 	goback(5);
 	shoveldown();
-	goforward(PID_PAUSE, 1, LOW_SPEED);
+	goforward(PID_PAUSE, 1, LOW_SPEED, 100);
 	shovelup();
 }
 void goback(uint16_t frequence){
 
 	if(frequence == FREQUENCE1)
 	{
-		goforward(PID_PAUSE, DIST1, -LOW_SPEED);
+		goforward(PID_PAUSE, DIST1, -LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
 	}
 	if(frequence == FREQUENCE2)
 	{
-		goforward(PID_PAUSE, DIST2, -LOW_SPEED);
+		goforward(PID_PAUSE, DIST2, -LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
 	}
 	if(frequence == FREQUENCE3)
 	{
-		goforward(PID_PAUSE, DIST3, -LOW_SPEED);
+		goforward(PID_PAUSE, DIST3, -LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
 	}
 
 }
@@ -328,7 +328,7 @@ void shovelup(void){
 }
 void gohome(void){
 	gotoedge();
-	mic_playing(MIC_PLAY)
+	set_mic_state(MIC_PLAY);
 	while(1)
 	{
 		if(get_frequence() == FREQUENCE1 || FREQUENCE2 || FREQUENCE3)
@@ -342,7 +342,7 @@ void gohome(void){
 		}
 		else go_to_another_edge();
 	}
-	mic_playing(MIC_PAUSE)
+	set_mic_state(MIC_PAUSE);
 }
 void throwwaste(void){
 
@@ -355,7 +355,7 @@ uint16_t function_distance_arena(uint16_t angle_robot){
 
 }
 void go_to_another_edge(void){
-	goforward(PID_PLAY, 0, STD_SPEED);
+	goforward(PID_PLAY, 0, STD_SPEED, TOO_CLOSE_OF_THE_WALL);
 		while(1)
 		{
 			if(get_prox(0) > 1000 || get_prox(7) > 1000)

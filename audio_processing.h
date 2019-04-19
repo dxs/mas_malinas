@@ -19,7 +19,7 @@ typedef enum {
 	BACK_OUTPUT
 } BUFFER_NAME_t;
 
-void set_mic_state(uint8_t state)
+void set_mic_state(uint8_t state);
 
 
 void processAudioData(int16_t *data, uint16_t num_samples);

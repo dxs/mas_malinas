@@ -12,7 +12,7 @@ void gotoarenacenter(void);
 void searchwaste(void);
 void gotowall(void);
 void aligntothewall(int16_t angle_min);
-void goforward(uint8_t pid_or_not, float distance, uint8_t speed);
+void goforward(uint8_t pid_or_not, float distance, uint8_t speed, int16_t stop_dist);
 void gotoedge(void);
 void walltoright(void);
 void turnleft(int16_t angle);
