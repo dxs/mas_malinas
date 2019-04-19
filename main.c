@@ -15,6 +15,8 @@
 #include "audio/microphone.h"
 #include "communications.h"
 #include "arm_math.h"
+#include "spi_comm.h"
+
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -43,15 +45,15 @@ int main(void)
     serial_start();
     //starts the USB communication
     usb_start();
+    spi_comm_start();
     //inits the arena
     init_arena();
-    clear_leds();
 	set_body_led(0);
 	set_front_led(0);
     messagebus_init(&bus,&bus_lock,&bus_condvar);
     // chThdSleepMilliseconds(5000);
 
-	//gotoarenacenter();
+	gotoarenacenter();
 	set_body_led(0);
 	set_front_led(1);
     chThdSleepMilliseconds(2000);

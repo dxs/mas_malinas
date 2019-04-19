@@ -17,6 +17,7 @@
 #include "leds.h"
 #include <chprintf.h>
 #include "motors_advanced.h"
+#include "spi_comm.h"
 
 #include "audio_processing.h"
 #include <fft.h>
@@ -33,6 +34,7 @@
 #define WHEEL_DISTANCE      5.35f    //cm TO ADJUST IF NECESSARY. NOT ALL THE E-PUCK2 HAVE EXACTLY THE SAME WHEEL DISTANCE
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
 
+#define VERY_HIGH_SPEED 13
 #define HIGH_SPEED	10
 #define STD_SPEED	8
 #define LOW_SPEED	5
@@ -78,7 +80,11 @@ void precise_alignment_wall(void);
 
 void init_arena(void)
 {
-	//inits the sensor
+	set_rgb_led(0, 255, 255, 0);
+	set_rgb_led(1, 255, 0, 255);
+	set_rgb_led(2, 255, 0, 255);
+	set_rgb_led(3, 255, 255, 0);
+
 	VL53L0X_start();
 	motors_advanced_init();
 	chThdSleepMilliseconds(200);
@@ -107,12 +113,6 @@ uint16_t wasteinsight(int16_t angle){
 			break;
 		dist = dist2;
 	}
-	// chThdSleepMilliseconds(110);
-	// if ( abs(dist - function_distance_arena(angle*ANGLE_RESOLUTION*RAD)) < ERROR_RESOLUTION)
-	// {
-	// 	dist = VL53L0X_get_dist_mm();
-	// 	return 1;
-	// }
 	return dist;
 }
 void searchwaste(void){
@@ -160,7 +160,6 @@ void searchwaste(void){
 				//offset de 5 degres pour compenser le fait que le robot tourne pas forcement de 5 degres � chaque fois
 				}
 			 }
-
 			case 1:
 				pickupwaste(angle_waste);
 				state = 2;
@@ -179,7 +178,10 @@ void searchwaste(void){
 				break;
 
 			case 4:
-				gotoarenacenter();
+				motors_advanced_turnright(90, STD_SPEED);
+				goforward(PID_PLAY, 0, STD_SPEED, TOO_CLOSE_OF_THE_WALL);
+				motors_advanced_turnright(135, HIGH_SPEED);
+				goforward(PID_PAUSE, 30, HIGH_SPEED,TOO_CLOSE_OF_THE_WALL);
 				state = 0;
 				break;
 		}
@@ -255,10 +257,19 @@ void precise_alignment_wall(void)
 	else
 		motors_advanced_set_speed(-0.5,0.5);
 
-	while(abs(left-right) > 40)
+	uint8_t align = 0;
+	while(align < 2)
 	{
 		left = get_prox(7);
 		right = get_prox(0);
+		if(left>right)//turnleft
+			motors_advanced_set_speed(0.5,-0.5);
+		else
+			motors_advanced_set_speed(-0.5,0.5);
+		if(abs(left-right) < 40)
+			align++;
+		else
+			align = 0;
 		chThdSleepMilliseconds(1);
 	}
 	motors_advanced_stop();
@@ -275,26 +286,32 @@ void aligntothewall(int16_t angle_min)
 		motors_advanced_turnright(360-angle_min, STD_SPEED);
 }
 
-void goforward(uint8_t pid_or_not, float distance, uint8_t speed, uint8_t stop_dist)
+void goforward(uint8_t pid_or_not, float distance, int8_t speed, uint8_t stop_dist)
 {
 	if(pid_or_not == PID_PAUSE)
 	{
 		pid_pause(PID_PAUSE);
 		if(distance == 0)
+		{
+			while(1)
+			{
+				if(stop_dist > VL53L0X_get_dist_mm())
+				//va en arriere si il est deja� trop pres
 				{
-					motors_advanced_set_speed(speed, speed);
-					while(VL53L0X_get_dist_mm() > stop_dist)
-						chThdSleepMilliseconds(110);
-					motors_advanced_stop();
+					chThdSleepMilliseconds(110);
 					if(stop_dist > VL53L0X_get_dist_mm())
-					//va en arrière si il est déjà trop près
-					{
-						int16_t dist_correction;
-						dist_correction = VL53L0X_get_dist_mm() - stop_dist;
-						motors_advanced_set_position(dist_correction, dist_correction, speed, speed);
-					}
-					set_front_led(0);
+						motors_advanced_set_speed(-speed, -speed);
 				}
+				else
+					break;
+			}
+			motors_advanced_set_speed(speed, speed);
+			while(VL53L0X_get_dist_mm() > stop_dist)
+				chThdSleepMilliseconds(110);
+			motors_advanced_stop();
+
+			set_front_led(0);
+		}
 		else
 		{
 			motors_advanced_set_position(distance, distance, speed, speed);
@@ -303,6 +320,10 @@ void goforward(uint8_t pid_or_not, float distance, uint8_t speed, uint8_t stop_d
 	else
 	{
 		pid_pause(PID_PLAY);
+		while(VL53L0X_get_dist_mm() > stop_dist)
+			chThdSleepMilliseconds(110);
+		pid_pause(PID_PAUSE);
+
 	}
 }
 
@@ -311,12 +332,12 @@ void gotoedge(void)
 	gotowall();
 	walltoright();
 	goforward(PID_PLAY, 0, STD_SPEED,TOO_CLOSE_OF_THE_WALL);
+	motors_advanced_set_speed(1,1);
 	while(1)
 	{
 		if(get_prox(0) > 1000 || get_prox(7) > 1000)
 		{
 			motors_advanced_stop();
-			pid_pause(PID_PAUSE);
 			precise_alignment_wall();
 			motors_advanced_turnright(90, LOW_SPEED);
 			precise_alignment_wall();
@@ -341,7 +362,7 @@ void pickupwaste(uint16_t _angle){
 	//goforward(PID_PAUSE, 1, LOW_SPEED);
 	//shovelup();
 }
-void goback(uint16_t frequence, uint8_t speed){
+void goback(uint16_t frequence, int8_t speed){
 
 	if(abs(frequence-FREQUENCE1) < FREQUENCE_RESOLUTION)
 	{
@@ -391,6 +412,7 @@ void gohome(void)
 
 				break;
 			default:
+				motors_advanced_turnleft(180, VERY_HIGH_SPEED);
 				go_to_another_edge();
 		}
 	}
@@ -403,25 +425,20 @@ void throwwaste(void)
 
 
 }
-uint16_t function_distance_arena(uint16_t angle_robot){
-	uint16_t dist_robot = 0;
-	dist_robot = RAYON_ARENA/cos(angle_robot) - RAYON_EPUCK ;
-	return dist_robot;
 
-}
 void go_to_another_edge(void){
 	goforward(PID_PLAY, 0, STD_SPEED,TOO_CLOSE_OF_THE_WALL);
-		while(1)
+	while(1)
+	{
+		motors_advanced_set_speed(1,1);
+		if(get_prox(0) > 1000 || get_prox(7) > 1000)
 		{
-			if(get_prox(0) > 1000 || get_prox(7) > 1000)
-			{
-				motors_advanced_stop();
-				pid_pause(PID_PAUSE);
-				precise_alignment_wall();
-				motors_advanced_turnright(90, LOW_SPEED);
-				precise_alignment_wall();
-				break;
-			}
-			chThdSleepMilliseconds(10);
+			motors_advanced_stop();
+			precise_alignment_wall();
+			motors_advanced_turnright(90, LOW_SPEED);
+			precise_alignment_wall();
+			break;
 		}
+		chThdSleepMilliseconds(10);
+	}
 }
