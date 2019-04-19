@@ -154,3 +154,8 @@ int16_t get_frequence(void)
 	return frequence;
 }
 
+void start_listening()
+{
+	mic_start(&processAudioData);
+}
+

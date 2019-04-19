@@ -37,3 +37,5 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name);
 #endif /* AUDIO_PROCESSING_H */
 
 int16_t get_frequence(void);
+
+void start_listening(void);

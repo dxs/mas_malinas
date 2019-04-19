@@ -17,9 +17,8 @@
 #include "leds.h"
 #include <chprintf.h>
 #include "motors_advanced.h"
-#include "audio/microphone.h"
 
-#include <audio_processing.h>
+#include "audio_processing.h"
 #include <fft.h>
 #include "communications.h"
 #include <arm_math.h>
@@ -42,9 +41,9 @@
 #define RAYON_ARENA 2570 //MM
 #define ERROR_RESOLUTION 50 //MM
 
-#define FREQUENCE1 16 //Hz
-#define FREQUENCE2 19 //Hz
-#define FREQUENCE3 23 //Hz
+#define FREQUENCE1 10000 //Hz
+#define FREQUENCE2 10200 //Hz
+#define FREQUENCE3 10400 //Hz
 
 #define DIST1 10
 #define DIST2 20
@@ -52,6 +51,26 @@
 
 BUFFER_NAME_t name = 0;
 static  uint16_t frequence;
+static float look_up_table[19] =
+			 {395.354887218045,
+			  367.559398496240,
+			  342.850891935721,
+			  321.229367536488,
+			  302.69482529854,
+			  287.247265221878,
+			  274.886687306502,
+			  265.613091552410,
+			  259.426477959605,
+			  256.326846528085,
+			  256.314197257851,
+			  259.388530148902,
+			  265.549845201238,
+			  274.798142414861,
+			  287.133421789768,
+			  302.555683325962,
+			  321.064927023441,
+			  342.661152882205,
+			  367.344360902255};
 
 void gohome(void);
 void precise_alignment_wall(void);
@@ -65,15 +84,13 @@ void init_arena(void)
 	proximity_start();
 	pid_pause(1);
 	pid_regulator_start();
-	set_mic_state(MIC_PAUSE);
-	mic_start(&processAudioData);
 }
 
 void gotoarenacenter(void)
 {
 	 gotoedge();
 	 motors_advanced_turnright(135, HIGH_SPEED);
-	 goforward(PID_PAUSE, 30, HIGH_SPEED, TOO_CLOSE_OF_THE_WALL);
+	 goforward(PID_PAUSE, 30, HIGH_SPEED,TOO_CLOSE_OF_THE_WALL);
 
 }
 uint16_t wasteinsight(int16_t angle){
@@ -84,7 +101,7 @@ uint16_t wasteinsight(int16_t angle){
 		chThdSleepMilliseconds(110);
 		dist2 = VL53L0X_get_dist_mm();
 
-		if(dist == dist2)
+		if(abs(dist-dist2)<ERROR_RESOLUTION)
 			break;
 		dist = dist2;
 	}
@@ -100,40 +117,50 @@ void searchwaste(void){
 
 	static uint8_t state = 0;
 	static int angle =0;
-	int16_t p[20] = {0};
+	static uint16_t angle_waste;
+	int16_t p[19] = {0};
 	p[0] = 1;
 	while(1)
 	{
 		switch(state){
 			case 0:
+			 while(state==0){
 				while(1)
 				{
 					chThdSleepMilliseconds(p[0]);
 					chThdSleepMilliseconds(120);
 					p[angle] = wasteinsight(angle);
 
-
-					if (p[0] == 0)
-					{
-						set_body_led(1);
-						chThdSleepMilliseconds(110);
-						state = 1;
-						//break;
-					}
-
 					motors_advanced_turnright(5, LOW_SPEED);
 					angle++;
-					if(angle ==  20 - 1)
+
+					if(angle ==  18)
 					{
 						angle = 0;
 						break;
 					}
 				}
-				chThdSleepMilliseconds(2000);
-				set_body_led(0);
-				break; // c'est possible qu'il reste coincÃ© dans cette boucle
-			case 1: set_body_led(0);
-				pickupwaste();
+				for(int i=0; i<18; i++)
+				{
+					if(abs(p[i]-look_up_table[i]) > ERROR_RESOLUTION && abs(p[i+1]-look_up_table[i+1]) > ERROR_RESOLUTION
+							&& abs(p[i+2]-look_up_table[i+2]) > ERROR_RESOLUTION)
+					{
+						set_front_led(1);
+						angle_waste = i+2;
+						state=1;
+						break;
+					}
+				}
+				chThdSleepMilliseconds(120);
+				if(state == 0)
+				{
+				motors_advanced_turnright(5, LOW_SPEED);
+				//offset de 5 degrés pour compenser le fait que le robot tourne pas forcément de 5 degrés à chaque fois
+				}
+			 }
+
+			case 1:
+				pickupwaste(angle_waste);
 				state = 2;
 				break;
 
@@ -143,13 +170,13 @@ void searchwaste(void){
 				break;
 
 			case 3:
-				goback(frequence);
+				goback(frequence,LOW_SPEED);
 				motors_advanced_turnleft(90, STD_SPEED);
 				throwwaste();
 				state = 4;
 				break;
 
-			case 4: 
+			case 4:
 				gotoarenacenter();
 				state = 0;
 				break;
@@ -162,7 +189,7 @@ int16_t findwall(void){
 	uint8_t max_norm_index = -1;
 	uint16_t max_norm = 1000;
 	uint16_t tmp = VL53L0X_get_dist_mm();
-	//measure all the distances from 0Â° to 360Â°
+	//measure all the distances from 0° to 360°
 	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
 		set_body_led(0);
@@ -201,7 +228,7 @@ void gotowall(void){
 	aligntothewall(angle_min);
 	set_body_led(0);
 	chThdSleepMilliseconds(150);
-	goforward(PID_PAUSE, 0, HIGH_SPEED, TOO_CLOSE_OF_THE_WALL);
+	goforward(PID_PAUSE, 0, HIGH_SPEED,TOO_CLOSE_OF_THE_WALL);
 	precise_alignment_wall();
 }
 
@@ -246,22 +273,23 @@ void aligntothewall(int16_t angle_min)
 		motors_advanced_turnright(360-angle_min, STD_SPEED);
 }
 
-void goforward(uint8_t pid_or_not, float distance, uint8_t speed, int16_t stop_dist)
+void goforward(uint8_t pid_or_not, float distance, uint8_t speed, uint8_t stop_dist)
 {
-	if(distance == 0)
+	if(pid_or_not == PID_PAUSE)
 	{
-		motors_advanced_set_speed(speed, speed);
-		while(VL53L0X_get_dist_mm() > stop_dist)
-			chThdSleepMilliseconds(110);
-		motors_advanced_stop();
-		if(stop_dist > VL53L0X_get_dist_mm())
-		//va en arriÃ¨re si il est dÃ©jÃ  trop prÃ¨s
+		pid_pause(PID_PAUSE);
+		if(distance == 0)
 		{
-			int16_t dist_correction;
-			dist_correction = VL53L0X_get_dist_mm() - stop_dist;
-			motors_advanced_set_position(dist_correction, dist_correction, speed, speed);
+			motors_advanced_set_speed(speed, speed);
+			while(VL53L0X_get_dist_mm() > stop_dist)
+				chThdSleepMilliseconds(110);
+			motors_advanced_stop();
+			set_front_led(0);
 		}
-		set_front_led(0);
+		else
+		{
+			motors_advanced_set_position(distance, distance, speed, speed);
+		}
 	}
 	else
 	{
@@ -273,7 +301,7 @@ void gotoedge(void)
 {
 	gotowall();
 	walltoright();
-	goforward(PID_PLAY, 0, LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
+	goforward(PID_PLAY, 0, LOW_SPEED,TOO_CLOSE_OF_THE_WALL);
 	while(1)
 	{
 		if(get_prox(0) > 1000 || get_prox(7) > 1000)
@@ -295,26 +323,28 @@ void walltoright(void){
 
 }
 
-void pickupwaste(void){
-	goforward(PID_PAUSE, 0, LOW_SPEED, 100);
-	goback(5);
-	shoveldown();
-	goforward(PID_PAUSE, 1, LOW_SPEED, 100);
-	shovelup();
+void pickupwaste(uint16_t _angle){
+	motors_advanced_turnleft(90 - _angle*5, LOW_SPEED);
+	chThdSleepMilliseconds(2000);
+	goforward(PID_PAUSE, 0, LOW_SPEED,100);
+	//goforward(PID_PAUSE, -10, LOW_SPEED,TOO_CLOSE_OF_THE_WASTE);
+	//shoveldown();
+	//goforward(PID_PAUSE, 1, LOW_SPEED);
+	//shovelup();
 }
-void goback(uint16_t frequence){
+void goback(uint16_t frequence, uint8_t speed){
 
 	if(frequence == FREQUENCE1)
 	{
-		goforward(PID_PAUSE, DIST1, -LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
+		goforward(PID_PAUSE, DIST1, -speed,TOO_CLOSE_OF_THE_WALL);
 	}
 	if(frequence == FREQUENCE2)
 	{
-		goforward(PID_PAUSE, DIST2, -LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
+		goforward(PID_PAUSE, DIST2, -speed,TOO_CLOSE_OF_THE_WALL);
 	}
 	if(frequence == FREQUENCE3)
 	{
-		goforward(PID_PAUSE, DIST3, -LOW_SPEED, TOO_CLOSE_OF_THE_WALL);
+		goforward(PID_PAUSE, DIST3, -speed,TOO_CLOSE_OF_THE_WALL);
 	}
 
 }
@@ -328,21 +358,19 @@ void shovelup(void){
 }
 void gohome(void){
 	gotoedge();
-	set_mic_state(MIC_PLAY);
 	while(1)
 	{
-		if(get_frequence() == FREQUENCE1 || FREQUENCE2 || FREQUENCE3)
-		{
-			if(get_frequence() == FREQUENCE1)
-				frequence = FREQUENCE1;
-			if(get_frequence() == FREQUENCE2)
-				frequence = FREQUENCE2;
-			if(get_frequence() == FREQUENCE3)
-				frequence = FREQUENCE3;
-		}
-		else go_to_another_edge();
+	if(get_frequence() == FREQUENCE1 || FREQUENCE2 || FREQUENCE3)
+	{
+		if(get_frequence() == FREQUENCE1)
+			frequence = FREQUENCE1;
+		if(get_frequence() == FREQUENCE2)
+			frequence = FREQUENCE2;
+		if(get_frequence() == FREQUENCE3)
+			frequence = FREQUENCE3;
 	}
-	set_mic_state(MIC_PAUSE);
+	else go_to_another_edge();
+	}
 }
 void throwwaste(void){
 
@@ -355,7 +383,7 @@ uint16_t function_distance_arena(uint16_t angle_robot){
 
 }
 void go_to_another_edge(void){
-	goforward(PID_PLAY, 0, STD_SPEED, TOO_CLOSE_OF_THE_WALL);
+	goforward(PID_PLAY, 0, STD_SPEED,TOO_CLOSE_OF_THE_WALL);
 		while(1)
 		{
 			if(get_prox(0) > 1000 || get_prox(7) > 1000)
