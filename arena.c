@@ -41,16 +41,16 @@
 #define RAYON_ARENA 2570 //MM
 #define ERROR_RESOLUTION 50 //MM
 
-#define FREQUENCE1 10000 //Hz
-#define FREQUENCE2 10200 //Hz
-#define FREQUENCE3 10400 //Hz
+#define FREQUENCE1 19 //Hz
+#define FREQUENCE2 20 //Hz
+#define FREQUENCE3 21 //Hz
 
 #define DIST1 10
 #define DIST2 20
 #define DIST3 30
 
 BUFFER_NAME_t name = 0;
-static  uint16_t frequence;
+static  uint16_t frequence = 0;
 static float look_up_table[19] =
 			 {395.354887218045,
 			  367.559398496240,
@@ -84,6 +84,7 @@ void init_arena(void)
 	proximity_start();
 	pid_pause(1);
 	pid_regulator_start();
+	set_mic_state(MIC_PAUSE);
 }
 
 void gotoarenacenter(void)
@@ -115,7 +116,7 @@ uint16_t wasteinsight(int16_t angle){
 }
 void searchwaste(void){
 
-	static uint8_t state = 0;
+	static uint8_t state = 2;
 	static int angle =0;
 	static uint16_t angle_waste;
 	int16_t p[19] = {0};
@@ -155,7 +156,7 @@ void searchwaste(void){
 				if(state == 0)
 				{
 				motors_advanced_turnright(5, LOW_SPEED);
-				//offset de 5 degrés pour compenser le fait que le robot tourne pas forcément de 5 degrés à chaque fois
+				//offset de 5 degrï¿½s pour compenser le fait que le robot tourne pas forcï¿½ment de 5 degrï¿½s ï¿½ chaque fois
 				}
 			 }
 
@@ -170,7 +171,7 @@ void searchwaste(void){
 				break;
 
 			case 3:
-				goback(frequence,LOW_SPEED);
+				goback(frequence,HIGH_SPEED);
 				motors_advanced_turnleft(90, STD_SPEED);
 				throwwaste();
 				state = 4;
@@ -189,7 +190,7 @@ int16_t findwall(void){
 	uint8_t max_norm_index = -1;
 	uint16_t max_norm = 1000;
 	uint16_t tmp = VL53L0X_get_dist_mm();
-	//measure all the distances from 0° to 360°
+	//measure all the distances from 0ï¿½ to 360ï¿½
 	for(uint16_t i = 0; i < NUMBER_OF_MEASURE; i++)
 	{
 		set_body_led(0);
@@ -348,31 +349,47 @@ void goback(uint16_t frequence, uint8_t speed){
 	}
 
 }
-void shoveldown(void){
+void shoveldown(void)
+{
 
 
 }
-void shovelup(void){
+
+void shovelup(void)
+{
 
 
 }
-void gohome(void){
-	gotoedge();
-	while(1)
+
+void gohome(void)
+{
+	//gotoedge();
+	set_mic_state(MIC_PLAY);
+	start_listening();
+	uint8_t found_camera = 0;
+	while(found_camera == 0)
 	{
-	if(get_frequence() == FREQUENCE1 || FREQUENCE2 || FREQUENCE3)
-	{
-		if(get_frequence() == FREQUENCE1)
-			frequence = FREQUENCE1;
-		if(get_frequence() == FREQUENCE2)
-			frequence = FREQUENCE2;
-		if(get_frequence() == FREQUENCE3)
-			frequence = FREQUENCE3;
+		wait_send_to_computer();
+		int16_t listen_freq = get_frequence();
+
+		switch(listen_freq)
+		{
+			case FREQUENCE1:
+			case FREQUENCE2:
+			case FREQUENCE3:
+				frequence = listen_freq;
+				found_camera = 1;
+				break;
+			//default:
+				//go_to_another_edge();
+		}
 	}
-	else go_to_another_edge();
-	}
+
 }
-void throwwaste(void){
+
+
+void throwwaste(void)
+{
 
 
 }

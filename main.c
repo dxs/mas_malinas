@@ -51,10 +51,10 @@ int main(void)
     messagebus_init(&bus,&bus_lock,&bus_condvar);
     // chThdSleepMilliseconds(5000);
 
-	gotoarenacenter();
+	//gotoarenacenter();
 	set_body_led(0);
 	set_front_led(1);
-    chThdSleepMilliseconds(5000);
+    chThdSleepMilliseconds(2000);
 	set_front_led(0);
     searchwaste();
 

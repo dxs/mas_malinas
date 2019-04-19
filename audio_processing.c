@@ -3,8 +3,6 @@
 #include <main.h>
 #include <usbcfg.h>
 #include <chprintf.h>
-
-#include <motors.h>
 #include <audio/microphone.h>
 #include <audio_processing.h>
 #include <communications.h>
@@ -18,7 +16,9 @@ static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 static float micLeft_cmplx_input[2 * FFT_SIZE];
 //Arrays containing the computed magnitude of the complex numbers
 static float micLeft_output[FFT_SIZE];
-static frequence = 0;
+
+
+static int frequence = 0;
 
 #define MIN_VALUE_THRESHOLD	10000 
 
@@ -28,15 +28,6 @@ static frequence = 0;
 #define FREQ_RIGHT		23	//359HZ
 #define FREQ_BACKWARD	26	//406Hz
 #define MAX_FREQ		30	//we don't analyze after this index to not use resources for nothing
-
-#define FREQ_FORWARD_L		(FREQ_FORWARD-1)
-#define FREQ_FORWARD_H		(FREQ_FORWARD+1)
-#define FREQ_LEFT_L			(FREQ_LEFT-1)
-#define FREQ_LEFT_H			(FREQ_LEFT+1)
-#define FREQ_RIGHT_L		(FREQ_RIGHT-1)
-#define FREQ_RIGHT_H		(FREQ_RIGHT+1)
-#define FREQ_BACKWARD_L		(FREQ_BACKWARD-1)
-#define FREQ_BACKWARD_H		(FREQ_BACKWARD+1)
 
 uint8_t mic_playing = MIC_PAUSE;
 
@@ -77,14 +68,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	if (mic_playing == MIC_PAUSE)
 		return;
 
-	/*
-	*
-	*	We get 160 samples per mic every 10ms
-	*	So we fill the samples buffers to reach
-	*	1024 samples, then we compute the FFTs.
-	*
-	*/
-	int16_t frequence = 0;
 	static uint16_t nb_samples = 0;
 	static uint8_t mustSend = 0;
 
@@ -92,9 +75,12 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	for(uint16_t i = 0 ; i < num_samples ; i+=4){
 		//construct an array of complex numbers. Put 0 to the imaginary part
 		micLeft_cmplx_input[nb_samples] = (float)data[i + MIC_LEFT];
+
 		nb_samples++;
+
 		micLeft_cmplx_input[nb_samples] = 0;
 		nb_samples++;
+
 		//stop when buffer is full
 		if(nb_samples >= (2 * FFT_SIZE)){
 			break;
@@ -105,9 +91,11 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		/*	FFT proccessing
 		*
 		*	This FFT function stores the results in the input buffer given.
-		*	This is an "In Place" function. 
+		*	This is an "In Place" function.
 		*/
+
 		doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
+
 
 		/*	Magnitude processing
 		*
@@ -118,10 +106,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 		*/
 		arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
 
-		nb_samples = 0;
-		mustSend++;
-
-		frequence = sound_remote(micLeft_output);
 
 		//sends only one FFT result over 10 for 1 mic to not flood the computer
 		//sends to UART3
@@ -130,12 +114,17 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			chBSemSignal(&sendToComputer_sem);
 			mustSend = 0;
 		}
+		nb_samples = 0;
+		mustSend++;
+
+		frequence = sound_remote(micLeft_output);
 	}
 }
 
 void wait_send_to_computer(void){
 	chBSemWait(&sendToComputer_sem);
 }
+
 
 float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 	if(name == LEFT_CMPLX_INPUT){
@@ -148,9 +137,11 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 		return NULL;
 	}
 }
+
+
+
 int16_t get_frequence(void)
 {
-	wait_send_to_computer();
 	return frequence;
 }
 
