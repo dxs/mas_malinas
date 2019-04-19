@@ -49,8 +49,9 @@ int main(void)
 	set_body_led(0);
 	set_front_led(0);
     messagebus_init(&bus,&bus_lock,&bus_condvar);
-    chThdSleepMilliseconds(5000);
-	gotoarenacenter();
+    // chThdSleepMilliseconds(5000);
+
+	// gotoarenacenter();
 	set_body_led(0);
 	set_front_led(1);
     chThdSleepMilliseconds(5000);

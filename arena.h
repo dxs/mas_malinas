@@ -17,7 +17,7 @@ void gotoedge(void);
 void walltoright(void);
 void turnleft(int16_t angle);
 int16_t  findwall(void);
-uint8_t wasteinsight(int16_t angle);
+uint16_t wasteinsight(int16_t angle);
 void pickupwaste(void);
 void goback(uint16_t frequence);
 void shoveldown(void);

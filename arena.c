@@ -51,7 +51,6 @@
 #define DIST3 30
 
 BUFFER_NAME_t name = 0;
-static  uint16_t pos_waste; //on peut peut être enlever
 static  uint16_t frequence;
 
 void gohome(void);
@@ -75,67 +74,84 @@ void gotoarenacenter(void)
 	 goforward(PID_PAUSE, 30, HIGH_SPEED);
 
 }
-uint8_t wasteinsight(int16_t angle){
-	uint16_t dist = VL53L0X_get_dist_mm(); //première mesure = 0 ?
-	chThdSleepMilliseconds(110);
-	if ( abs(dist - function_distance_arena(angle*ANGLE_RESOLUTION*RAD)) < ERROR_RESOLUTION)
+uint16_t wasteinsight(int16_t angle){
+	uint16_t dist = VL53L0X_get_dist_mm();
+	uint16_t dist2 = 0;
+	while(1)
 	{
-			return 1;
-	}
+		chThdSleepMilliseconds(110);
+		dist2 = VL53L0X_get_dist_mm();
 
-	return 0;
+		if(dist == dist2)
+			break;
+		dist = dist2;
+	}
+	// chThdSleepMilliseconds(110);
+	// if ( abs(dist - function_distance_arena(angle*ANGLE_RESOLUTION*RAD)) < ERROR_RESOLUTION)
+	// {
+	// 	dist = VL53L0X_get_dist_mm();
+	// 	return 1;
+	// }
+	return dist;
 }
 void searchwaste(void){
 
 	static uint8_t state = 0;
-	int16_t angle = 0;
+	static int angle =0;
+	int16_t p[20] = {0};
+	p[0] = 1;
 	while(1)
 	{
-	switch(state){
-	        	case 0:
-	        				while(angle < NUMBER_OF_MEASURE)
-						{
-							uint16_t test = VL53L0X_get_dist_mm();
-							chThdSleepMilliseconds(110);
-							if (wasteinsight(angle) == 1)
-							{
-								set_body_led(1);
-								pos_waste = angle;
-								chThdSleepMilliseconds(110);
-								state = 1;
-								break;
-							}
-							else
-							{
-								motors_advanced_turnright(ANGLE_RESOLUTION, STD_SPEED);
-								chThdSleepMilliseconds(110);
-								angle += 1;
-								if(angle ==  NUMBER_OF_MEASURE - 1)
-									angle = 0;
-							}
-						}
-	        				break; // c'est possible qu'il reste coincé dans cette boucle
-	        	case 1: set_body_led(0);
-	        			pickupwaste();
-	        			state = 2;
-	        			break;
+		switch(state){
+			case 0:
+				while(1)
+				{
+					chThdSleepMilliseconds(p[0]);
+					chThdSleepMilliseconds(120);
+					p[angle] = wasteinsight(angle);
 
-	        	case 2:
-	        			gohome();
-	        			state = 3;
-	        			break;
 
-	        	case 3:
-	        			goback(frequence);
-	        			motors_advanced_turnleft(90, STD_SPEED);
-	        			throwwaste();
-	        			state = 4;
-	        			break;
+					if (p[0] == 0)
+					{
+						set_body_led(1);
+						chThdSleepMilliseconds(110);
+						state = 1;
+						//break;
+					}
 
-	        	case 4: gotoarenacenter();
-	        			state = 0;
-	        			break;
-	        }
+					motors_advanced_turnright(5, LOW_SPEED);
+					angle++;
+					if(angle ==  20 - 1)
+					{
+						angle = 0;
+						break;
+					}
+				}
+				chThdSleepMilliseconds(2000);
+				set_body_led(0);
+				break; // c'est possible qu'il reste coincé dans cette boucle
+			case 1: set_body_led(0);
+				pickupwaste();
+				state = 2;
+				break;
+
+			case 2:
+				gohome();
+				state = 3;
+				break;
+
+			case 3:
+				goback(frequence);
+				motors_advanced_turnleft(90, STD_SPEED);
+				throwwaste();
+				state = 4;
+				break;
+
+			case 4: 
+				gotoarenacenter();
+				state = 0;
+				break;
+		}
 	}
 }
 
