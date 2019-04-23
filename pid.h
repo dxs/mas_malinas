@@ -5,12 +5,12 @@
 #define ROTATION_THRESHOLD		10
 #define ROTATION_COEFF			2
 #define PXTOCM					1570.0f //experimental value
-#define GOAL_DISTANCE 			0.8f
+#define GOAL_DISTANCE 			0.9f
 #define MAX_DISTANCE 			25.0f
 #define ERROR_THRESHOLD			0.0001f	//[cm] because of the noise of the camera
 #define KP						1.01f
 #define KI 						1.01f	//must not be zero
-#define MAX_SUM_ERROR 			0.3
+#define MAX_SUM_ERROR 			0.2f
 #define TOO_CLOSE_OF_THE_WALL 	50
 #define PID_PAUSE				1
 #define PID_PLAY				0

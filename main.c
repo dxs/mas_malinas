@@ -22,18 +22,6 @@ messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
-static void serial_start(void)
-{
-	static SerialConfig ser_cfg = {
-	    115200,
-	    0,
-	    0,
-	    0,
-	};
-
-	sdStart(&SD3, &ser_cfg); // UART3.
-}
-
 int main(void)
 {
 
@@ -42,7 +30,7 @@ int main(void)
     mpu_init();
 
     //starts the serial communication
-    serial_start();
+
     //starts the USB communication
     usb_start();
     spi_comm_start();
@@ -51,19 +39,19 @@ int main(void)
 	set_body_led(0);
 	set_front_led(0);
     messagebus_init(&bus,&bus_lock,&bus_condvar);
-    // chThdSleepMilliseconds(5000);
-
+    chThdSleepMilliseconds(3000);
+    //searchwaste();
 	gotoarenacenter();
 	set_body_led(0);
 	set_front_led(1);
-    chThdSleepMilliseconds(2000);
+    chThdSleepMilliseconds(1000);
 	set_front_led(0);
     searchwaste();
 
 
     /* Infinite loop. */
     while (1) {
-
+    	chThdSleepMilliseconds(2000);
     }
 }
 
