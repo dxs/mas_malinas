@@ -3,18 +3,17 @@
 #include <string.h>
 
 #include "arena.h"
+#include "arm_math.h"
 #include "ch.h"
+#include "communications.h"
 #include "hal.h"
+#include "i2c_bus.h"
 #include "leds.h"
+#include <main.h>
+#include "motors_advanced.h"
 #include "memory_protection.h"
 #include <usbcfg.h>
-#include <main.h>
 #include "chprintf.h"
-#include "motors_advanced.h"
-#include "i2c_bus.h"
-#include "audio/microphone.h"
-#include "communications.h"
-#include "arm_math.h"
 #include "spi_comm.h"
 
 
@@ -28,9 +27,6 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
-
-    //starts the serial communication
-
     //starts the USB communication
     usb_start();
     spi_comm_start();
@@ -40,13 +36,16 @@ int main(void)
 	set_front_led(0);
     messagebus_init(&bus,&bus_lock,&bus_condvar);
     chThdSleepMilliseconds(3000);
-    //searchwaste();
+
+    //Initialize the robot position to arena center
 	gotoarenacenter();
 	set_body_led(0);
 	set_front_led(1);
     chThdSleepMilliseconds(1000);
 	set_front_led(0);
-    searchwaste();
+
+    //Clean
+    search_waste();
 
 
     /* Infinite loop. */
