@@ -8,8 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <usbcfg.h>
-#include <chprintf.h>
+
 
 #include <arena.h>
 #include <arm_math.h>
@@ -25,6 +24,8 @@
 #include "spi_comm.h"
 #include "sensors/VL53L0X/VL53L0X.h"
 #include "sensors/proximity.h"
+#include <usbcfg.h>
+#include <chprintf.h>
 
 #define ANGLE_MAX 360
 #define NUMBER_OF_MEASURE 20
@@ -169,7 +170,7 @@ void gotoarenacenter(void)
 {
 	 gotoedge();
 	 motors_advanced_turnright(134, HIGH_SPEED);
-	 goforward(PID_PAUSE, 30, VERY_HIGH_SPEED,TOO_CLOSE_OF_THE_WALL);
+	 goforward(PID_PAUSE, 30, VERY_HIGH_SPEED, TOO_CLOSE_OF_THE_WALL);
 }
 
 /// <summary>
@@ -360,7 +361,7 @@ void search_waste(void){
 				while(1)
 				{
 					chThdSleepMilliseconds(50);
-					p[angle] = waste_in_sight(angle);
+					p[angle] = waste_in_sight();
 
 					motors_advanced_turnright(5, LOW_SPEED);
 					angle++;
@@ -420,14 +421,14 @@ void search_waste(void){
 uint16_t waste_in_sight(void)
 {
 	uint16_t dist = get_distance();
-	uint16_t DIST_DECHET_2 = 0;
+	uint16_t dist2 = 0;
 	while(1)
 	{
-		DIST_DECHET_2 = get_distance();
+		dist2 = get_distance();
 
-		if(abs(dist-DIST_DECHET_2)<10)
+		if(abs(dist-dist2)<10)
 			break;
-		dist = DIST_DECHET_2;
+		dist = dist2;
 	}
 	return dist;
 }
