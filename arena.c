@@ -40,13 +40,11 @@
 #define STD_SPEED		8
 #define LOW_SPEED		5
 #define VERY_LOW_SPEED	3
-#define RAYON_EPUCK 	365 //MM
-#define RAYON_ARENA 	2570 //MM
 #define ERROR_RESOLUTION 80 //MM
 
-#define FREQ_DECHET_1 19 //Hz
-#define FREQ_DECHET_2 20 //Hz
-#define FREQ_DECHET_3 21 //Hz
+#define FREQ_DECHET_1 19	//296Hz
+#define FREQ_DECHET_2 20 //312Hz
+#define FREQ_DECHET_3 21 //327Hz
 #define FREQUENCE_RESOLUTION 2 //Hz
 
 #define DIST_DECHET_1 5
@@ -357,7 +355,7 @@ void search_waste(void){
 	{
 		switch(state){
 			case STATE_SEARCH:
-			 while(state==0){
+			 while(state==STATE_SEARCH){
 				while(1)
 				{
 					chThdSleepMilliseconds(50);
@@ -379,12 +377,12 @@ void search_waste(void){
 					{
 						set_front_led(1);
 						angle_waste = i+2;
-						state=1;
+						state=STATE_PICKUP;
 						break;
 					}
 				}
 				chThdSleepMilliseconds(120);
-				if(state == 0)
+				if(state == STATE_SEARCH)
 				{
 				motors_advanced_turnright(5, LOW_SPEED);
 				//offset de 5 degres pour compenser le fait que le robot tourne pas forcement de 5 degres a chaque fois
@@ -392,19 +390,19 @@ void search_waste(void){
 			 }
 			case STATE_PICKUP:
 				pickup_waste(angle_waste);
-				state = 2;
+				state = STATE_HOME;
 				break;
 
 			case STATE_HOME:
 				gohome();
-				state = 3;
+				state = STATE_RECYCLE;
 				break;
 
 			case STATE_RECYCLE:
 				goback(frequence,HIGH_SPEED);
 				motors_advanced_turnleft(90, STD_SPEED);
 				throwwaste();
-				state = 4;
+				state = STATE_RESET;
 				break;
 
 			case STATE_RESET:
@@ -412,7 +410,7 @@ void search_waste(void){
 				goforward(PID_PLAY, 0, STD_SPEED, TOO_CLOSE_OF_THE_WALL);
 				motors_advanced_turnright(135, HIGH_SPEED);
 				goforward(PID_PAUSE, 30, HIGH_SPEED,TOO_CLOSE_OF_THE_WALL);
-				state = 0;
+				state = STATE_SEARCH;
 				break;
 		}
 	}

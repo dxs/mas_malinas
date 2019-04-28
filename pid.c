@@ -85,7 +85,7 @@ int16_t pid_regulator_V2(float distance, float goal){
 		sum_error = -MAX_SUM_ERROR;
 	}
 
-	speed = 0.01 * error - 1.0;// + KI * sum_error;
+	speed = 0.01 * error - 1.0;
 
     return (int16_t)speed;
 }
@@ -114,10 +114,6 @@ static THD_FUNCTION(Pid, arg) {
 					motors_advanced_turnleft(5,5);
 				//applies the speed from the PI regulator and the correction for the rotation
 				motors_advanced_set_speed(10 - ROTATION_COEFF*speed, 10 + ROTATION_COEFF *speed);
-
-
-
-				//100Hz
 				chThdSleepUntilWindowed(time, time + MS2ST(10));
 			}
     }
