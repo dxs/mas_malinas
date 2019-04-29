@@ -27,38 +27,43 @@
 #include <usbcfg.h>
 #include <chprintf.h>
 
-#define ANGLE_MAX 360
-#define NUMBER_OF_MEASURE 20
-#define ANGLE_RESOLUTION ANGLE_MAX / NUMBER_OF_MEASURE
+#define ANGLE_MAX 			360
+#define NUMBER_OF_MEASURE 	20
+#define ANGLE_RESOLUTION 	ANGLE_MAX / NUMBER_OF_MEASURE
 #define PI                  3.1415926536f
 #define RAD PI/180
 #define WHEEL_DISTANCE      5.35f    //cm
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
 
-#define VERY_HIGH_SPEED 13
-#define HIGH_SPEED		10
-#define STD_SPEED		8
-#define LOW_SPEED		5
-#define VERY_LOW_SPEED	3
-#define ERROR_RESOLUTION 80 //MM
+#define VERY_HIGH_SPEED 	13
+#define HIGH_SPEED			10
+#define STD_SPEED			8
+#define LOW_SPEED			5
+#define VERY_LOW_SPEED		3
+#define RAYON_EPUCK 		365 //MM
+#define RAYON_ARENA 		2570 //MM
+#define ERROR_RESOLUTION 	80 //MM
 
-#define FREQ_DECHET_1 19	//296Hz
-#define FREQ_DECHET_2 20 //312Hz
-#define FREQ_DECHET_3 21 //327Hz
+#define DIST_SLEEP			10
+
+#define FREQ_DECHET_1 		16	//250Hz
+#define FREQ_DECHET_2 		19	//296Hz
+#define FREQ_DECHET_3 		22	//335HZ
 #define FREQUENCE_RESOLUTION 2 //Hz
 
-#define DIST_DECHET_1 5
-#define DIST_DECHET_2 10
-#define DIST_DECHET_3 15
+#define DIST_DECHET_1 		5
+#define DIST_DECHET_2 		10
+#define DIST_DECHET_3 		15
 
-#define STATE_SEARCH 	0
-#define STATE_PICKUP 	1
-#define STATE_HOME		2
-#define STATE_RECYCLE	3
-#define STATE_RESET		4
+#define STATE_SEARCH 		0
+#define STATE_PICKUP 		1
+#define STATE_HOME			2
+#define STATE_RECYCLE		3
+#define STATE_RESET			4
 
 
-static  uint8_t frequence = 0;
+//last frequency listened
+static uint8_t frequence = 0;
 
 static float look_up_table[19] =
 			 {395.354887218045,
@@ -100,25 +105,6 @@ void go_to_another_edge(void);
 
 
 /// <summary>
-/// Initialize sensors
-/// </summary>
-void init_arena(void)
-{
-	set_rgb_led(0, 255, 255, 0);
-	set_rgb_led(1, 255, 0, 255);
-	set_rgb_led(2, 255, 0, 255);
-	set_rgb_led(3, 255, 255, 0);
-
-	VL53L0X_start();
-	motors_advanced_init();
-	chThdSleepMilliseconds(200);
-	proximity_start();
-	pid_pause(1);
-	pid_regulator_start();
-	set_mic_state(MIC_PAUSE);
-}
-
-/// <summary>
 /// Controls position of the robot for straight lines
 /// </summary>
 /// <param name="pid">Control the uses of the PID</param>
@@ -136,16 +122,17 @@ void goforward(uint8_t pid, float distance, int8_t speed, uint8_t stop_dist)
 			while(1)
 			{
 				if(stop_dist > get_distance()) // Goback if too close
+				{
 					if(stop_dist > get_distance())
 						motors_advanced_set_speed(-speed, -speed);
+				}
 				else
 					break;
 			}
 			motors_advanced_set_speed(speed, speed);
 			while(get_distance() > stop_dist)
-				chThdSleepMilliseconds(10);
+				chThdSleepMilliseconds(DIST_SLEEP);
 			motors_advanced_stop();
-			set_front_led(0);
 		}
 		else
 			motors_advanced_set_position(distance, distance, speed, speed);
@@ -154,7 +141,7 @@ void goforward(uint8_t pid, float distance, int8_t speed, uint8_t stop_dist)
 	{
 		pid_pause(PID_PLAY);
 		while(get_distance() > stop_dist)
-			chThdSleepMilliseconds(10);
+			chThdSleepMilliseconds(DIST_SLEEP);
 		pid_pause(PID_PAUSE);
 	}
 }
@@ -191,7 +178,7 @@ void gotoedge(void)
 			precise_alignment_wall();
 			break;
 		}
-		chThdSleepMilliseconds(10);
+		chThdSleepMilliseconds(DIST_SLEEP);
 	}
 }
 
@@ -203,7 +190,6 @@ void gotowall(void)
 {
 	int16_t angle_min = 0;
 	angle_min = findwall();
-	set_front_led(1);
 	align_to_wall(angle_min);
 	set_body_led(0);
 	chThdSleepMilliseconds(150);
@@ -217,7 +203,7 @@ void gotowall(void)
 /// <returns>int16_t angle in degree to the nearest wall relatives to started position</returns>
 int16_t findwall(void)
 {
-	uint8_t max_norm_index = -1;
+	int8_t max_norm_index = -1;
 	uint16_t max_norm = 1000;
 	uint16_t tmp = VL53L0X_get_dist_mm();
 	//measure all the distances from 0 to 360
@@ -355,7 +341,7 @@ void search_waste(void){
 	{
 		switch(state){
 			case STATE_SEARCH:
-			 while(state==STATE_SEARCH){
+			 while(state==0){
 				while(1)
 				{
 					chThdSleepMilliseconds(50);
@@ -375,42 +361,54 @@ void search_waste(void){
 					if(abs(p[i]-look_up_table[i]) > ERROR_RESOLUTION && abs(p[i+1]-look_up_table[i+1]) > ERROR_RESOLUTION
 							&& abs(p[i+2]-look_up_table[i+2]) > ERROR_RESOLUTION)
 					{
-						set_front_led(1);
 						angle_waste = i+2;
-						state=STATE_PICKUP;
+						state=1;
 						break;
 					}
 				}
 				chThdSleepMilliseconds(120);
-				if(state == STATE_SEARCH)
+				if(state == 0)
 				{
-				motors_advanced_turnright(5, LOW_SPEED);
-				//offset de 5 degres pour compenser le fait que le robot tourne pas forcement de 5 degres a chaque fois
+					motors_advanced_turnright(5, LOW_SPEED);
+					//offset de 5 degres pour compenser le fait que le robot tourne pas forcement de 5 degres a chaque fois
 				}
 			 }
 			case STATE_PICKUP:
 				pickup_waste(angle_waste);
-				state = STATE_HOME;
+				state = 2;
 				break;
 
 			case STATE_HOME:
 				gohome();
-				state = STATE_RECYCLE;
+				state = 3;
 				break;
 
 			case STATE_RECYCLE:
 				goback(frequence,HIGH_SPEED);
-				motors_advanced_turnleft(90, STD_SPEED);
+				motors_advanced_turnright(90, STD_SPEED);
 				throwwaste();
-				state = STATE_RESET;
+				state = 4;
 				break;
 
 			case STATE_RESET:
-				motors_advanced_turnleft(90, VERY_HIGH_SPEED);
+				motors_advanced_turnright(90, VERY_HIGH_SPEED);
 				goforward(PID_PLAY, 0, STD_SPEED, TOO_CLOSE_OF_THE_WALL);
+				motors_advanced_set_speed(1,1);
+				while(1)
+				{
+					if(get_prox(0) > 1000 || get_prox(7) > 1000)
+					{
+						motors_advanced_stop();
+						precise_alignment_wall();
+						motors_advanced_turnright(90, LOW_SPEED);
+						precise_alignment_wall();
+						break;
+					}
+					chThdSleepMilliseconds(10);
+				}
 				motors_advanced_turnright(135, HIGH_SPEED);
 				goforward(PID_PAUSE, 30, HIGH_SPEED,TOO_CLOSE_OF_THE_WALL);
-				state = STATE_SEARCH;
+				state = 0;
 				break;
 		}
 	}
@@ -431,16 +429,25 @@ uint16_t waste_in_sight(void)
 	return dist;
 }
 
-void pickup_waste(uint16_t _angle){
+void pickup_waste(uint16_t _angle)
+{
 	motors_advanced_turnleft(90 - _angle*5, LOW_SPEED);
 	chThdSleepMilliseconds(2000);
-	goforward(PID_PAUSE, 0, LOW_SPEED,100);
+	goforward(PID_PAUSE, 0, LOW_SPEED,150);
 	chThdSleepMilliseconds(1000);
-	//shoveldown();
-	//goforward(PID_PAUSE, 1, LOW_SPEED);
-	//shovelup();
+	to_scan_e(0);
+	shoveldown();
+	chThdSleepMilliseconds(1000);
+	goforward(PID_PAUSE, 5, VERY_HIGH_SPEED, 5000);
+	chThdSleepMilliseconds(100);
+	to_scan_e(0);
+	shovelup();
+	chThdSleepMilliseconds(1000);
 }
-void goback(uint16_t frequence, int8_t speed){
+
+
+void goback(uint16_t frequence, int8_t speed)
+{
 
 	if(abs(frequence-FREQ_DECHET_1) < FREQUENCE_RESOLUTION)
 	{
@@ -456,17 +463,41 @@ void goback(uint16_t frequence, int8_t speed){
 	}
 
 }
+
 void shoveldown(void)
 {
+	for(int i = 0; i < 50; i++)
+	{
+		set_front_led(1);
+		chThdSleepMicroseconds(900);
+		set_front_led(0);
+		chThdSleepMilliseconds(19);
+	}
 }
 
 void shovelup(void)
 {
+	for(int i = 0; i < 50; i++)
+	{
+		set_front_led(1);
+		chThdSleepMicroseconds(1200);
+		set_front_led(0);
+		chThdSleepMicroseconds(18800);
+	}
 }
 
 
 void throwwaste(void)
 {
+	for(int i = 0; i < 3; i++)
+	{
+		set_front_led(1);
+		chThdSleepMicroseconds(1000);
+		set_front_led(0);
+		chThdSleepMilliseconds(19);
+	}
+	shovelup();
+	chThdSleepMilliseconds(2000);
 }
 
 void gohome(void)
@@ -486,7 +517,6 @@ void gohome(void)
 			case FREQ_DECHET_2:
 			case FREQ_DECHET_3:
 				frequence = listen_freq;
-				set_front_led(1);
 				found_camera = 1;
 
 				break;
@@ -514,4 +544,25 @@ void go_to_another_edge(void){
 		}
 		chThdSleepMilliseconds(10);
 	}
+}
+
+/// <summary>
+/// Initialize sensors
+/// </summary>
+void init_arena(void)
+{
+	set_rgb_led(0, 255, 255, 0);
+	set_rgb_led(1, 255, 0, 255);
+	set_rgb_led(2, 255, 0, 255);
+	set_rgb_led(3, 255, 255, 0);
+	VL53L0X_start();
+	motors_advanced_init();
+	chThdSleepMilliseconds(200);
+	proximity_start();
+	pid_pause(1);
+	pid_regulator_start();
+	set_mic_state(MIC_PAUSE);
+	to_scan_e(0);
+	shoveldown();
+	shovelup();
 }

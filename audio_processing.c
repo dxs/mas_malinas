@@ -23,10 +23,6 @@ static int frequence = 0;
 #define MIN_VALUE_THRESHOLD	10000 
 
 #define MIN_FREQ		10	//we don't analyze before this index to not use resources for nothing
-#define FREQ_FORWARD	16	//250Hz
-#define FREQ_LEFT		19	//296Hz
-#define FREQ_RIGHT		23	//359HZ
-#define FREQ_BACKWARD	26	//406Hz
 #define MAX_FREQ		30	//we don't analyze after this index to not use resources for nothing
 
 uint8_t mic_playing = MIC_PAUSE;
@@ -66,7 +62,9 @@ int16_t sound_remote(float* data){
 void processAudioData(int16_t *data, uint16_t num_samples){
 
 	if (mic_playing == MIC_PAUSE)
+	{
 		return;
+	}
 
 	static uint16_t nb_samples = 0;
 	static uint8_t mustSend = 0;
