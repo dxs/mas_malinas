@@ -100,26 +100,28 @@ static THD_FUNCTION(Pid, arg) {
 
     float speed = 0;
 
-    while(1){
-			if(pid_sleep == PID_PAUSE)
-					chThdSleepUntilWindowed(time, time + MS2ST(4000));
-			else {
-				time = chVTGetSystemTime();
+    while(1)
+    {
+    	time = chVTGetSystemTime();
+		if(pid_sleep == PID_PAUSE)
+				chThdSleepUntilWindowed(time, time + MS2ST(4000));
+		else {
+			time = chVTGetSystemTime();
 
-				//computes the speed to give to the motors
-				//distance_cm is modified by the image processing thread
-				speed = pid_regulator_V1(get_distance_cm_sensor(2), GOAL_DISTANCE);
-				float frontdist = get_distance_cm_sensor(1);
-				if(frontdist < 1.3)
-					motors_advanced_turnleft(5,5);
-				//applies the speed from the PI regulator and the correction for the rotation
-				motors_advanced_set_speed(10 - ROTATION_COEFF*speed, 10 + ROTATION_COEFF *speed);
+			//computes the speed to give to the motors
+			//distance_cm is modified by the image processing thread
+			speed = pid_regulator_V1(get_distance_cm_sensor(2), GOAL_DISTANCE);
+			float frontdist = get_distance_cm_sensor(1);
+			if(frontdist < 1.3)
+				motors_advanced_turnleft(5,5);
+			//applies the speed from the PI regulator and the correction for the rotation
+			motors_advanced_set_speed(10 - ROTATION_COEFF*speed, 10 + ROTATION_COEFF *speed);
 
 
 
-				//100Hz
-				chThdSleepUntilWindowed(time, time + MS2ST(10));
-			}
+			//100Hz
+			chThdSleepUntilWindowed(time, time + MS2ST(10));
+		}
     }
 }
 

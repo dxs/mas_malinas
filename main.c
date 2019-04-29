@@ -15,6 +15,7 @@
 #include <usbcfg.h>
 #include "chprintf.h"
 #include "spi_comm.h"
+//#include "chsys.h"
 
 
 messagebus_t bus;
@@ -31,6 +32,7 @@ int main(void)
     usb_start();
     spi_comm_start();
     //inits the arena
+
     init_arena();
 	set_body_led(0);
 	set_front_led(0);
@@ -40,7 +42,6 @@ int main(void)
     //Initialize the robot position to arena center
 	gotoarenacenter();
 	set_body_led(0);
-	set_front_led(1);
     chThdSleepMilliseconds(1000);
 	set_front_led(0);
 
@@ -52,6 +53,8 @@ int main(void)
     while (1) {
     	chThdSleepMilliseconds(2000);
     }
+
+
 }
 
 #define STACK_CHK_GUARD 0xe2dee396
