@@ -9,8 +9,6 @@
 #ifndef ARENA_H_
 #define ARENA_H_
 
-
-void init_arena(void);
 /*- INIT POSITION OF ROBOT TO ARENA CENTER -*/
 void gotoarenacenter(void);
 
